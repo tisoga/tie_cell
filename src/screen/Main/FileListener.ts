@@ -3,7 +3,7 @@ import { NavigationProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../type';
 
 interface FileListenerProps {
-    navigation: NavigationProp<RootStackParamList>; // Adjust the type as per your navigation prop
+    navigation: NavigationProp<RootStackParamList>; 
 }
 
 export const setupFileListener = ({ navigation }: FileListenerProps) => {

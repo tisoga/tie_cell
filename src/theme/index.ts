@@ -1,15 +1,4 @@
-
-export type ThemeListType = {
-    text: string,
-    primary: string
-    secondary: string
-    accent: string
-}
-
-export type ThemeType = {
-    light: ThemeListType,
-    dark: ThemeListType
-}
+import { ThemeType } from "../type";
 
 export const Green: ThemeType = {
     light: {

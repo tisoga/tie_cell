@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Button, TextInput, View, Text, KeyboardAvoidingView, StatusBar, ScrollView } from "react-native"
+import { Button, TextInput, View, Text, KeyboardAvoidingView, StatusBar, ScrollView, RefreshControlBase } from "react-native"
 import { Extractor } from "react-native-pdf-extractor"
 import DocumentPicker, { isCancel, isInProgress, types } from 'react-native-document-picker'
 import styles from "./styles"
@@ -32,7 +32,6 @@ const ChooseFileMode = ({ pdf }: ChooseFileModeProps) => {
 
     useEffect(() => {
         if (pdf) {
-            console.log(pdf)
             setFileUri(pdf)
             setModalVisible(true)
         }
@@ -66,7 +65,7 @@ const ChooseFileMode = ({ pdf }: ChooseFileModeProps) => {
         const regex = /\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2}/g;
         const tglTransaksi = dataStr.match(regex)?.toString() as string
         const indexProduk = arr.findIndex(item => item.toLowerCase().includes('produk :'))
-
+        console.log(arr)
         if (indexProduk !== -1) {
             produk = arr[indexProduk].split(':')[1].trim()
         }
@@ -199,6 +198,33 @@ const ChooseFileMode = ({ pdf }: ChooseFileModeProps) => {
                 ['RP TAG PLN', tagihan],
             ]
 
+            console.log(sn)
+
+            setListOfData(dataSet)
+            setInitialData(dataSet)
+        }
+        else if (dataStr.toLowerCase().includes('tagihan listrik')) {
+            setFileTypeProcess('listrik')
+            const idPel = arr[arr.findIndex(item => item.toLowerCase().includes('idpel :'))].split(' ')[2]
+            const namaPel = dataStr.slice(dataStr.toLowerCase().indexOf('nama :') + 6, dataStr.toLowerCase().indexOf('trf/daya :')).trim()
+            const daya = dataStr.slice(dataStr.toLowerCase().indexOf('trf/daya :') + 10, dataStr.toLowerCase().indexOf('tagihan :')).trim()
+            const periode = arr[arr.findIndex(item => item.toLowerCase().includes('bl/th :'))].split(' ')[2].split('/')[0]
+            const tagihan = dataStr.slice(dataStr.toLowerCase().indexOf('tagihan :') + 9, dataStr.toLowerCase().indexOf('pln reff :')).replace('RP .', '').replace(',00', '').trim()
+            const standMtrArr = dataStr.slice(dataStr.toLowerCase().indexOf('std mtr :') + 9, dataStr.toLowerCase().indexOf('adm bank :')).replace('SM:','').replaceAll(' ','').split('-')
+            const standMtr = `${Number(standMtrArr[0])} - ${Number(standMtrArr[1])}`
+            const plnRef = dataStr.slice(dataStr.toLowerCase().indexOf('pln reff :') + 10, dataStr.toLowerCase().indexOf('bl/th :')).replaceAll(' ','').trim()
+
+            const dataSet = [
+                [tglTransaksi],
+                ['IDPEL', idPel],
+                ['NAMA PEL', namaPel],
+                ['TRF/DAYA', daya],
+                ['PERIODE', periode],
+                ['STAND MTR', standMtr],
+                ['PLN REF', plnRef],
+                ['RP TAG PLN', tagihan],
+            ]
+
             setListOfData(dataSet)
             setInitialData(dataSet)
         }
@@ -236,12 +262,6 @@ const ChooseFileMode = ({ pdf }: ChooseFileModeProps) => {
 
     const onProcess = async () => {
         setFileUri(file.uri)
-        try {
-
-        }
-        catch (e) {
-            console.log(e)
-        }
     }
 
     const onChangeText = (i: number, value: string) => {

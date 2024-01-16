@@ -5,6 +5,18 @@ type DeviceListType = {
     address: string
 }
 
+type ThemeListType = {
+    text: string,
+    primary: string
+    secondary: string
+    accent: string
+}
+
+type ThemeType = {
+    light: ThemeListType,
+    dark: ThemeListType
+}
+
 type FileType = {
     name: string,
     uri: string

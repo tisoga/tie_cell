@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSetRecoilState } from "recoil"
 import { printerConnectedState } from "../../recoil/atom"
 import LoadingScreen from "../Loading"
+import { DeviceListType } from "../../type"
 
 
 const BluetoothManageScreen = () => {

@@ -28,7 +28,6 @@ const MainScreen = ({ navigation, route }: props) => {
             try {
                 setLoading(true)
                 const device = await AsyncStorage.getItem('lastConnected')
-                // console.log(device)
                 if (device) {
                     const dvc = JSON.parse(device)
                     await BluetoothManager.connect(dvc.address)
