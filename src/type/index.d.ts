@@ -24,7 +24,7 @@ type FileType = {
 
 type RootStackParamList = {
     Test: undefined,
-    Home?: { file: string },
+    Home?: { file?: string, fileType?: 'image' | 'pdf' },
     Settings: undefined
 }
 

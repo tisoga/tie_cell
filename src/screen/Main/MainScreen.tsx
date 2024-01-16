@@ -17,6 +17,7 @@ const MainScreen = ({ navigation, route }: props) => {
     const { selectedTheme } = useTheme()
     const [printer, setPrinter] = useRecoilState(printerConnectedState)
     const file = route.params?.file
+    const fileType = route.params?.fileType
     const [isLoading, setLoading] = useState(false)
 
     const openSetting = () => {
@@ -67,7 +68,12 @@ const MainScreen = ({ navigation, route }: props) => {
                             onPress={openSetting}
                         />
                     </View>
-                    <ChooseFileMode pdf={file} />
+                    {fileType === 'image'
+                        ?
+                        <ChooseFileMode imageUri={file} />
+                        :
+                        <ChooseFileMode pdfUri={file} />
+                    }
                 </>
             }
 

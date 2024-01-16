@@ -11,12 +11,14 @@ import Modal from 'react-native-modal'
 import TextInputModal from "./components/TextInputModal"
 import ButtonModal from "./components/ButtonModal"
 import { FileType } from "../../type"
+import TextRecognition from "@react-native-ml-kit/text-recognition"
 
 type ChooseFileModeProps = {
-    pdf?: any
+    pdfUri?: any
+    imageUri?: any
 }
 
-const ChooseFileMode = ({ pdf }: ChooseFileModeProps) => {
+const ChooseFileMode = ({ pdfUri, imageUri }: ChooseFileModeProps) => {
     const { selectedTheme } = useTheme()
     const [isModalVisible, setModalVisible] = useState(false)
     const [file, setFile] = useState<FileType>({
@@ -31,15 +33,19 @@ const ChooseFileMode = ({ pdf }: ChooseFileModeProps) => {
     const [fileTypeProcess, setFileTypeProcess] = useState('')
 
     useEffect(() => {
-        if (pdf) {
-            setFileUri(pdf)
+        if (pdfUri) {
+            setFileUri(pdfUri)
             setModalVisible(true)
         }
-    }, [pdf])
+        else if (imageUri) {
+            imageToText(imageUri)
+        }
+    }, [pdfUri, imageUri])
 
     const ChooseFile = async () => {
         try {
-            const result = await DocumentPicker.pickSingle({ type: types.pdf })
+            const result = await DocumentPicker.pickSingle({ type: [types.images, types.pdf] })
+            // const result = await DocumentPicker.pickSingle()
             setFile({
                 name: result.name as string,
                 uri: result.uri
@@ -210,9 +216,9 @@ const ChooseFileMode = ({ pdf }: ChooseFileModeProps) => {
             const daya = dataStr.slice(dataStr.toLowerCase().indexOf('trf/daya :') + 10, dataStr.toLowerCase().indexOf('tagihan :')).trim()
             const periode = arr[arr.findIndex(item => item.toLowerCase().includes('bl/th :'))].split(' ')[2].split('/')[0]
             const tagihan = dataStr.slice(dataStr.toLowerCase().indexOf('tagihan :') + 9, dataStr.toLowerCase().indexOf('pln reff :')).replace('RP .', '').replace(',00', '').trim()
-            const standMtrArr = dataStr.slice(dataStr.toLowerCase().indexOf('std mtr :') + 9, dataStr.toLowerCase().indexOf('adm bank :')).replace('SM:','').replaceAll(' ','').split('-')
+            const standMtrArr = dataStr.slice(dataStr.toLowerCase().indexOf('std mtr :') + 9, dataStr.toLowerCase().indexOf('adm bank :')).replace('SM:', '').replaceAll(' ', '').split('-')
             const standMtr = `${Number(standMtrArr[0])} - ${Number(standMtrArr[1])}`
-            const plnRef = dataStr.slice(dataStr.toLowerCase().indexOf('pln reff :') + 10, dataStr.toLowerCase().indexOf('bl/th :')).replaceAll(' ','').trim()
+            const plnRef = dataStr.slice(dataStr.toLowerCase().indexOf('pln reff :') + 10, dataStr.toLowerCase().indexOf('bl/th :')).replaceAll(' ', '').trim()
 
             const dataSet = [
                 [tglTransaksi],
@@ -261,7 +267,14 @@ const ChooseFileMode = ({ pdf }: ChooseFileModeProps) => {
     }
 
     const onProcess = async () => {
-        setFileUri(file.uri)
+        const arr = file.uri.split('.')
+        const fileType = arr[arr.length - 1]
+        if (fileType === 'pdf') {
+            setFileUri(file.uri)
+        }
+        else if (fileType === 'jpg' || fileType === 'png') {
+            imageToText(file.uri)
+        }
     }
 
     const onChangeText = (i: number, value: string) => {
@@ -377,6 +390,29 @@ const ChooseFileMode = ({ pdf }: ChooseFileModeProps) => {
                 }
                 onCloseModal()
             }
+            else if (fileTypeProcess === 'transfer') {
+                const data = listOfData as string[][]
+                const date = data.splice(0, 1)[0][0]
+                const bankAsal = data.splice(0, 1)[0][0]
+                const rpFormatAdm = formatToIDR(Number(harga))
+                const total = formatToIDR(Number(harga) + Number(data[10][1]))
+                data[10][1] = formatToIDR(Number(data[10][1]))
+                data.splice(11, 0, ['ADM BANK', rpFormatAdm])
+                data.splice(12, 0, ['TOTAL', total])
+                const formatedPrinted = headerFormat(date, bankAsal as 'permata' | 'bri') + makeFormattedString(data) + footerFormat(bankAsal as 'permata' | 'bri')
+                try {
+                    ThermalPrinterModule.printBluetooth({
+                        payload: formatedPrinted,
+                        mmFeedPaper: 3,
+                        printerWidthMM: 58,
+                        printerNbrCharactersPerLine: 30
+                    })
+                }
+                catch (e) {
+                    console.log(e)
+                }
+                onCloseModal()
+            }
         }
         else {
             console.log('err')
@@ -388,6 +424,91 @@ const ChooseFileMode = ({ pdf }: ChooseFileModeProps) => {
         setFileUri('')
         setModalVisible(false)
     }
+
+    const imageToText = async (uri: string) => {
+        console.log(uri)
+        try {
+            const result = await TextRecognition.recognize(uri);
+            const resultArr = result.text.split('\n')
+
+            // console.log('Recognized text:', result.text);
+            console.log('Recognized text:', resultArr);
+            if (resultArr[0].toLocaleLowerCase() === 'permatabank') {
+                setFileTypeProcess('transfer')
+                const jumlahTrf = resultArr[5].replace('Rp', '').replace(',', '').replace('.00', '').trim()
+                const penerima = resultArr[8]
+                const bankPenerima = resultArr[9]
+                const rekeningPenerima = resultArr[10].replace('(|DR)', '').trim()
+                const pengirim = resultArr[12]
+                const bankPengirim = resultArr[13]
+                const rekeningPengirim = resultArr[14].replace('(|DR)', '').trim()
+                const transferType = resultArr[16]
+                const ref = resultArr[19]
+                const tanggal = `${resultArr[20]} ${resultArr[21]}`
+
+                const dataSet = [
+                    [tanggal],
+                    ['permata'],
+                    ['NO REF', ref],
+                    ['TRANSFER TYPE', transferType],
+                    ['TF_SENDER'],
+                    ['BANK ASAL', bankPengirim],
+                    ['NOMOR REKENING', rekeningPengirim],
+                    ['ATAS NAMA', pengirim],
+                    ['TF_RECEIVER'],
+                    ['BANK TUJUAN', bankPenerima],
+                    ['NOMOR REKENING', rekeningPenerima],
+                    ['ATAS NAMA', penerima],
+                    ['NOMINAL', jumlahTrf]
+                ]
+
+                // console.log(dataSet)
+                setListOfData(dataSet)
+                setInitialData(dataSet)
+                setModalVisible(true)
+            }
+            if (resultArr.includes('NPWP:01.001.608.7-093.000')) {
+                setFileTypeProcess('transfer')
+                const tanggal = resultArr[7].replace(', ', ' ').replaceAll('WIB', '').trim()
+                const jumlahTrf = String(Number(resultArr[11].replace('Rp', '').replaceAll('.', '')) - 2500)
+                const pengirim = resultArr[12]
+                const bankPengirim = resultArr[13]
+                const rekeningPengirim = resultArr[14].replaceAll(' ', '').trim()
+                const penerima = resultArr[17]
+                const bankPenerima = resultArr[18]
+                const rekeningPenerima = resultArr[19].replaceAll(' ', '').trim()
+                const ref = resultArr[30]
+                const transferType = resultArr[33]
+
+                const dataSet = [
+                    [tanggal],
+                    ['bri'],
+                    ['NO REF', ref],
+                    ['TRANSFER TYPE', transferType],
+                    ['TF_SENDER'],
+                    ['BANK ASAL', bankPengirim],
+                    ['NOMOR REKENING', rekeningPengirim],
+                    ['ATAS NAMA', pengirim],
+                    ['TF_RECEIVER'],
+                    ['BANK TUJUAN', bankPenerima],
+                    ['NOMOR REKENING', rekeningPenerima],
+                    ['ATAS NAMA', penerima],
+                    ['NOMINAL', jumlahTrf]
+                ]
+
+                // console.log(dataSet)
+                setListOfData(dataSet)
+                setInitialData(dataSet)
+                setModalVisible(true)
+            }
+
+        }
+        catch (e) {
+            console.log(e)
+        }
+
+    };
+
 
     return (
         <>
@@ -401,7 +522,14 @@ const ChooseFileMode = ({ pdf }: ChooseFileModeProps) => {
                             index !== 0 &&
                             <TextInputModal label={arr[0]} value={arr[1]} editable={isDataEditable} key={index} onChangeText={onChangeText} index={index} />
                         ))}
-                        <TextInputModal label="Harga" value={harga} placeholder={'Masukan Harga'} editable={true} type="numeric" onChangeText={onChangeText} index={-1} />
+                        <TextInputModal
+                            label={fileTypeProcess === 'transfer' ? 'ADMIN' : 'HARGA'}
+                            value={harga}
+                            placeholder={'Masukan Harga'}
+                            editable={true}
+                            type="numeric"
+                            onChangeText={onChangeText}
+                            index={-1} />
                         <View style={{ flexDirection: 'row', paddingHorizontal: 10, marginTop: 10, gap: 4, marginBottom: 10 }}>
                             <ButtonModal label={isDataEditable ? 'Reset' : 'Edit'} color={isDataEditable ? 'red' : 'yellow'} onPress={isDataEditable ? onPressReset : onPressEdit} />
                             <ButtonModal label="Print" color="green" onPress={onPressPrint} />
@@ -423,6 +551,7 @@ const ChooseFileMode = ({ pdf }: ChooseFileModeProps) => {
             <Button
                 title="Process"
                 disabled={file.uri ? false : true}
+                // onPress={onProcess}
                 onPress={onProcess}
             />
             <Extractor onResult={onResult} uri={fileUri} />

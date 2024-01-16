@@ -38,9 +38,16 @@ const App = (): React.JSX.Element => {
   }, [])
 
   useEffect(() => {
-    requestMultiple([PERMISSIONS.ANDROID.BLUETOOTH_CONNECT, PERMISSIONS.ANDROID.BLUETOOTH_SCAN, PERMISSIONS.ANDROID.BLUETOOTH_ADVERTISE]).then((res) => {
-      console.log(res)
-    })
+    requestMultiple(
+      [
+        PERMISSIONS.ANDROID.BLUETOOTH_CONNECT,
+        PERMISSIONS.ANDROID.BLUETOOTH_SCAN,
+        PERMISSIONS.ANDROID.BLUETOOTH_ADVERTISE,
+        PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
+        PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE
+      ]).then((res) => {
+        console.log(res)
+      })
   }, [])
 
 

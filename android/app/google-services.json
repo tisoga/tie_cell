@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "810609017941",
+    "project_id": "new-tie-cell",
+    "storage_bucket": "new-tie-cell.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:810609017941:android:995f198d651cf94cb340dc",
+        "android_client_info": {
+          "package_name": "com.yanz.tieCellPrint"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRoghS-YWunVYd--PQtX_Q20Dvht_mgjE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
