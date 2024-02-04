@@ -435,7 +435,7 @@ const ChooseFileMode = ({ pdfUri, imageUri }: ChooseFileModeProps) => {
             console.log('Recognized text:', resultArr);
             if (resultArr[0].toLocaleLowerCase() === 'permatabank') {
                 setFileTypeProcess('transfer')
-                const jumlahTrf = resultArr[5].replace('Rp', '').replace(',', '').replace('.00', '').trim()
+                const jumlahTrf = resultArr[5].replace('Rp', '').replace(',', '').replace('.', '').trim()
                 const penerima = resultArr[8]
                 const bankPenerima = resultArr[9]
                 const rekeningPenerima = resultArr[10].replace('(|DR)', '').trim()
@@ -459,7 +459,7 @@ const ChooseFileMode = ({ pdfUri, imageUri }: ChooseFileModeProps) => {
                     ['BANK TUJUAN', bankPenerima],
                     ['NOMOR REKENING', rekeningPenerima],
                     ['ATAS NAMA', penerima],
-                    ['NOMINAL', jumlahTrf]
+                    ['NOMINAL', jumlahTrf.slice(0, -2)]
                 ]
 
                 // console.log(dataSet)

@@ -9,8 +9,8 @@ interface FileListenerProps {
 
 export const setupFileListener = ({ navigation }: FileListenerProps) => {
     const handleOpenURL = async (event: any, background: boolean = false) => {
-        // console.log(event)
-        // console.log(background)
+        console.log(event)
+        console.log(background)
         if (event) {
             let fileType: 'image' | 'pdf';
             const fileUri = background ? event : event.url
