@@ -198,7 +198,8 @@ const ChooseFileMode = ({ pdf }: ChooseFileModeProps) => {
                 ['RP TAG PLN', tagihan],
             ]
 
-            console.log(sn)
+            console.log('dataSet')
+            console.log(dataSet)
 
             setListOfData(dataSet)
             setInitialData(dataSet)
@@ -336,8 +337,8 @@ const ChooseFileMode = ({ pdf }: ChooseFileModeProps) => {
             else if (fileTypeProcess === 'listrik') {
                 const data = listOfData as string[][]
                 const date = data.splice(0, 1)[0][0]
-                const rpFormat = formatToIDR(Number(harga) - Number(data[6][1]))
-                data[6][1] = formatToIDR(Number(data[6][1]))
+                const rpFormat = formatToIDR(Number(harga) - Number(data[6][1].replace('RP.','').replaceAll('.','')))
+                data[6][1] = formatToIDR(Number(data[6][1].replace('RP.','').replaceAll('.','')))
                 data.splice(7, 0, ['ADM & JASA', rpFormat])
                 data.splice(8, 0, ['TOTAL HARGA', formatToIDR(Number(harga))])
                 const formatedPrinted = headerFormat(date, 'listrik') + makeFormattedString(data) + footerFormat("pln")
