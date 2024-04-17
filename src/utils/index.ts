@@ -1,3 +1,5 @@
+import RNFetchBlob from "rn-fetch-blob";
+
 const splitStringLength = (str: string, maxLength: number, resultArray: Array<string> = []) => {
     const chunk: string = str.slice(0, maxLength);
     resultArray.push(chunk);
@@ -137,4 +139,13 @@ export const makeFormattedString = (listString: string[][]) => {
         }
     });
     return resultStr
+}
+
+export const getAbsolutePath = async(uri:string) => {
+    const stat = await RNFetchBlob.fs.stat(uri as string)
+    return stat.path
+}
+
+export const deleteCacheFile = (path:string) => {
+    RNFetchBlob.fs.exists(path).then((fileExist) => { if(fileExist) { RNFetchBlob.fs.unlink(path) } })
 }

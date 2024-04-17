@@ -1,4 +1,4 @@
-import { Alert, Button, Text, View, NativeModules } from "react-native"
+import { Button, Text, View } from "react-native"
 import styles from "./styles"
 import useTheme from "../../hooks/useTheme"
 import ChooseFileMode from "./ChooseFileMode"
@@ -11,11 +11,11 @@ import { BluetoothManager } from "@brooons/react-native-bluetooth-escpos-printer
 import LoadingScreen from "../Loading"
 import { RootStackParamList } from "../../type"
 
+
 type props = NativeStackScreenProps<RootStackParamList, 'Home'>
 
 const MainScreen = ({ navigation, route }: props) => {
     const { selectedTheme } = useTheme()
-    const { OpenCVModule } = NativeModules
     const [printer, setPrinter] = useRecoilState(printerConnectedState)
     const file = route.params?.file
     const [isLoading, setLoading] = useState(false)
@@ -25,7 +25,6 @@ const MainScreen = ({ navigation, route }: props) => {
     }
 
     useEffect(() => {
-        console.log(OpenCVModule.processImage())
         const reconnectDevice = async () => {
             try {
                 setLoading(true)

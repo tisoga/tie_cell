@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react"
-import { Button, TextInput, View, Text, KeyboardAvoidingView, StatusBar, ScrollView, RefreshControlBase } from "react-native"
+import { Button, TextInput, View, Text, ScrollView, NativeModules } from "react-native"
 import { Extractor } from "react-native-pdf-extractor"
 import DocumentPicker, { isCancel, isInProgress, types } from 'react-native-document-picker'
 import styles from "./styles"
 import useTheme from "../../hooks/useTheme"
 import { TextResult, Transient } from "react-native-pdf-extractor/src/types"
 import ThermalPrinterModule from 'react-native-thermal-printer';
-import { footerFormat, formatToIDR, headerFormat, makeFormattedString } from "../../utils"
+import { deleteCacheFile, footerFormat, formatToIDR, getAbsolutePath, headerFormat, makeFormattedString } from "../../utils"
 import Modal from 'react-native-modal'
 import TextInputModal from "./components/TextInputModal"
 import ButtonModal from "./components/ButtonModal"
 import { FileType } from "../../type"
+import RNFetchBlob from "rn-fetch-blob"
 
 type ChooseFileModeProps = {
     pdf?: any
@@ -18,6 +19,7 @@ type ChooseFileModeProps = {
 
 const ChooseFileMode = ({ pdf }: ChooseFileModeProps) => {
     const { selectedTheme } = useTheme()
+    const { OpenCVModule } = NativeModules;
     const [isModalVisible, setModalVisible] = useState(false)
     const [file, setFile] = useState<FileType>({
         name: '',
@@ -39,7 +41,11 @@ const ChooseFileMode = ({ pdf }: ChooseFileModeProps) => {
 
     const ChooseFile = async () => {
         try {
-            const result = await DocumentPicker.pickSingle({ type: types.pdf })
+            const result = await DocumentPicker.pickSingle({ type: [types.pdf, types.images], copyTo: "cachesDirectory" })
+            const path = await getAbsolutePath(result.fileCopyUri as string)
+            const res = await OpenCVModule.processImage(path)
+            console.log(res)
+            deleteCacheFile(path)
             setFile({
                 name: result.name as string,
                 uri: result.uri
@@ -211,9 +217,9 @@ const ChooseFileMode = ({ pdf }: ChooseFileModeProps) => {
             const daya = dataStr.slice(dataStr.toLowerCase().indexOf('trf/daya :') + 10, dataStr.toLowerCase().indexOf('tagihan :')).trim()
             const periode = arr[arr.findIndex(item => item.toLowerCase().includes('bl/th :'))].split(' ')[2].split('/')[0]
             const tagihan = dataStr.slice(dataStr.toLowerCase().indexOf('tagihan :') + 9, dataStr.toLowerCase().indexOf('pln reff :')).replace('RP .', '').replace(',00', '').trim()
-            const standMtrArr = dataStr.slice(dataStr.toLowerCase().indexOf('std mtr :') + 9, dataStr.toLowerCase().indexOf('adm bank :')).replace('SM:','').replaceAll(' ','').split('-')
+            const standMtrArr = dataStr.slice(dataStr.toLowerCase().indexOf('std mtr :') + 9, dataStr.toLowerCase().indexOf('adm bank :')).replace('SM:', '').replaceAll(' ', '').split('-')
             const standMtr = `${Number(standMtrArr[0])} - ${Number(standMtrArr[1])}`
-            const plnRef = dataStr.slice(dataStr.toLowerCase().indexOf('pln reff :') + 10, dataStr.toLowerCase().indexOf('bl/th :')).replaceAll(' ','').trim()
+            const plnRef = dataStr.slice(dataStr.toLowerCase().indexOf('pln reff :') + 10, dataStr.toLowerCase().indexOf('bl/th :')).replaceAll(' ', '').trim()
 
             const dataSet = [
                 [tglTransaksi],
@@ -337,8 +343,8 @@ const ChooseFileMode = ({ pdf }: ChooseFileModeProps) => {
             else if (fileTypeProcess === 'listrik') {
                 const data = listOfData as string[][]
                 const date = data.splice(0, 1)[0][0]
-                const rpFormat = formatToIDR(Number(harga) - Number(data[6][1].replace('RP.','').replaceAll('.','')))
-                data[6][1] = formatToIDR(Number(data[6][1].replace('RP.','').replaceAll('.','')))
+                const rpFormat = formatToIDR(Number(harga) - Number(data[6][1].replace('RP.', '').replaceAll('.', '')))
+                data[6][1] = formatToIDR(Number(data[6][1].replace('RP.', '').replaceAll('.', '')))
                 data.splice(7, 0, ['ADM & JASA', rpFormat])
                 data.splice(8, 0, ['TOTAL HARGA', formatToIDR(Number(harga))])
                 const formatedPrinted = headerFormat(date, 'listrik') + makeFormattedString(data) + footerFormat("pln")
