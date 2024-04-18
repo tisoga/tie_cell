@@ -1,13 +1,14 @@
 import { Linking } from 'react-native'
 import { NavigationProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../type';
+import { getAbsolutePath } from '../../utils';
 
 interface FileListenerProps {
     navigation: NavigationProp<RootStackParamList>; 
 }
 
 export const setupFileListener = ({ navigation }: FileListenerProps) => {
-    const handleOpenURL = (event: any, background: boolean = false) => {
+    const handleOpenURL = async (event: any, background: boolean = false) => {
         // console.log(background)
         const fileUri = background ? event : event.url
         // console.log('File opened:', fileUri);
@@ -22,7 +23,7 @@ export const setupFileListener = ({ navigation }: FileListenerProps) => {
 
     Linking.getInitialURL().then(url => {
         handleOpenURL(url, true)
-        console.log(url)
+        // console.log(url)
     })
 
     // Clean up the event listener when needed

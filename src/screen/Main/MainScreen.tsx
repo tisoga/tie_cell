@@ -11,7 +11,6 @@ import { BluetoothManager } from "@brooons/react-native-bluetooth-escpos-printer
 import LoadingScreen from "../Loading"
 import { RootStackParamList } from "../../type"
 
-
 type props = NativeStackScreenProps<RootStackParamList, 'Home'>
 
 const MainScreen = ({ navigation, route }: props) => {
@@ -47,7 +46,6 @@ const MainScreen = ({ navigation, route }: props) => {
                 setLoading(false)
             }
         }
-
         reconnectDevice()
     }, [])
 

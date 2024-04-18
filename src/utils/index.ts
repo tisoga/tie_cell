@@ -142,8 +142,13 @@ export const makeFormattedString = (listString: string[][]) => {
 }
 
 export const getAbsolutePath = async(uri:string) => {
-    const stat = await RNFetchBlob.fs.stat(uri as string)
-    return stat.path
+    try{
+        const stat = await RNFetchBlob.fs.stat(uri as string)
+        return stat.path
+    }
+    catch(e){
+        console.log(e)
+    }
 }
 
 export const deleteCacheFile = (path:string) => {

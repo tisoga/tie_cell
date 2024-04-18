@@ -11,7 +11,6 @@ import Modal from 'react-native-modal'
 import TextInputModal from "./components/TextInputModal"
 import ButtonModal from "./components/ButtonModal"
 import { FileType } from "../../type"
-import RNFetchBlob from "rn-fetch-blob"
 
 type ChooseFileModeProps = {
     pdf?: any
@@ -41,11 +40,9 @@ const ChooseFileMode = ({ pdf }: ChooseFileModeProps) => {
 
     const ChooseFile = async () => {
         try {
-            const result = await DocumentPicker.pickSingle({ type: [types.pdf, types.images], copyTo: "cachesDirectory" })
-            const path = await getAbsolutePath(result.fileCopyUri as string)
-            const res = await OpenCVModule.processImage(path)
+            const result = await DocumentPicker.pickSingle({ type: [types.pdf, types.images] })
+            const res = await OpenCVModule.processImage(result.uri)
             console.log(res)
-            deleteCacheFile(path)
             setFile({
                 name: result.name as string,
                 uri: result.uri
