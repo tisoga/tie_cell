@@ -4,7 +4,9 @@ import android.content.res.AssetManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.provider.DocumentsContract;
 import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import android.util.Log;
 
 import com.facebook.react.bridge.NativeModule;
@@ -52,6 +54,30 @@ public class OpenCVModules extends ReactContextBaseJavaModule {
         Map<String, CoordinatesData> coordinatesMap = new HashMap<>();
         Context context = getReactApplicationContext();
         WritableMap resultMap = new WritableNativeMap();
+
+        Log.d("FIELD_TYPE", context.getContentResolver().getType(Uri.parse(imageLocation)));
+        try (Cursor cursor = context.getContentResolver().query(Uri.parse(imageLocation), null, null, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int displayNameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (!cursor.isNull(displayNameIndex)) {
+                    String fileName = cursor.getString(displayNameIndex);
+                    Log.d("FIELD_NAME", fileName);
+                } else {
+                    Log.d("FIELD_NAME", null);
+                }
+                int mimeIndex = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE);
+                if (!cursor.isNull(mimeIndex)) {
+                    Log.d("FIELD_TYPE", cursor.getString(mimeIndex));
+                }
+                int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
+                if (cursor.isNull(sizeIndex)) {
+                    Log.d("FIELD_SIZE", "size");
+                } else {
+                    Log.d("FIELD_SIZE", Long.toString(cursor.getLong(sizeIndex)));
+                }
+            }
+        }
+
 
         coordinatesMap.put("tanggal_status", new CoordinatesData(new int[]{100,152,296,83}, new String[] {"transaksi","berhasil","gagal"}));
         coordinatesMap.put("admin_nominal", new CoordinatesData(new int[]{30, 876, 437, 48}, new String[] {}));
