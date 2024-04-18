@@ -1,6 +1,10 @@
 package com.new_tie_cell;
+import android.content.Context;
 import android.content.res.AssetManager;
+import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.net.Uri;
+import android.provider.MediaStore;
 import android.util.Log;
 
 import com.facebook.react.bridge.NativeModule;
@@ -31,6 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.UUID;
 
 public class OpenCVModules extends ReactContextBaseJavaModule {
     OpenCVModules(ReactApplicationContext context) {
@@ -45,7 +50,9 @@ public class OpenCVModules extends ReactContextBaseJavaModule {
     @ReactMethod
     public void processImage(String imageLocation, Promise promise){
         Map<String, CoordinatesData> coordinatesMap = new HashMap<>();
+        Context context = getReactApplicationContext();
         WritableMap resultMap = new WritableNativeMap();
+
         coordinatesMap.put("tanggal_status", new CoordinatesData(new int[]{100,152,296,83}, new String[] {"transaksi","berhasil","gagal"}));
         coordinatesMap.put("admin_nominal", new CoordinatesData(new int[]{30, 876, 437, 48}, new String[] {}));
         coordinatesMap.put("jenis_transaksi", new CoordinatesData(new int[]{32, 734, 437, 36}, new String[] {}));
@@ -55,9 +62,11 @@ public class OpenCVModules extends ReactContextBaseJavaModule {
         coordinatesMap.put("total", new CoordinatesData(new int[]{121, 270, 240, 99}, new String[] {"total", "transaksi"}));
         coordinatesMap.put("sumber_rek", new CoordinatesData(new int[]{107, 534, 181, 34}, new String[] {}));
 
-        String dataPath = getReactApplicationContext().getFilesDir().getAbsolutePath() + "/tesseract";
-        copyAssets(dataPath);
-        Mat image = imagePreProcessing(imageLocation);
+        String dataPath = context.getFilesDir().getAbsolutePath() + "/tesseract";
+        copyAssets(context, dataPath);
+
+        Uri cacheFileLoc = copyFileToLocalStorage(context, Uri.parse(imageLocation));
+        Mat image = imagePreProcessing(cacheFileLoc.getPath());
         TessBaseAPI tess = new TessBaseAPI();
         tess.init(dataPath, "eng");
         for (Map.Entry<String, CoordinatesData> entry : coordinatesMap.entrySet()){
@@ -71,7 +80,40 @@ public class OpenCVModules extends ReactContextBaseJavaModule {
             resultMap.putString(keyValue, cleanedTextList.toString());
         }
         tess.recycle();
+        File imageCache = new File(cacheFileLoc.getPath());
+        imageCache.delete();
         promise.resolve(resultMap);
+    }
+
+    private Uri copyFileToLocalStorage(Context context, Uri uri){
+        File dir = context.getCacheDir();
+        dir = new File(dir, UUID.randomUUID().toString());
+        try{
+            boolean didCreateDir = dir.mkdir();
+            if (!didCreateDir) {
+                throw new IOException("failed to create directory at " + dir.getAbsolutePath());
+            }
+            File destFile = new File(dir, "name.jpg");
+            Uri copyPath = copyFile(context, uri, destFile);
+            return copyPath;
+        }
+        catch (Exception e){
+            e.printStackTrace();
+            Log.d("errorLog", "desc", e);
+            return uri;
+        }
+    }
+
+    public static Uri copyFile(Context context, Uri uri, File destFile) throws IOException {
+        try(InputStream inputStream = context.getContentResolver().openInputStream(uri);
+            FileOutputStream outputStream = new FileOutputStream(destFile)) {
+            byte[] buf = new byte[8192];
+            int len;
+            while ((len = inputStream.read(buf)) > 0) {
+                outputStream.write(buf, 0, len);
+            }
+            return Uri.fromFile(destFile);
+        }
     }
 
     private Mat imagePreProcessing(String imageLocation){
@@ -143,8 +185,8 @@ public class OpenCVModules extends ReactContextBaseJavaModule {
         }
     }
 
-    private void copyAssets(String dataPath){
-        AssetManager am = getReactApplicationContext().getAssets();
+    private void copyAssets(Context context, String dataPath){
+        AssetManager am = context.getAssets();
         File tessdataDir = new File(dataPath, "tessdata");
         Log.d("tessdata", dataPath);
         if (!tessdataDir.exists()) {
