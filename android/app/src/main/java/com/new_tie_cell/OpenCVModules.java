@@ -9,6 +9,7 @@ import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.util.Log;
 
+import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.NativeModule;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -53,31 +54,8 @@ public class OpenCVModules extends ReactContextBaseJavaModule {
     public void processImage(String imageLocation, Promise promise){
         Map<String, CoordinatesData> coordinatesMap = new HashMap<>();
         Context context = getReactApplicationContext();
+        Map fileData = getFileData(context, Uri.parse(imageLocation));
         WritableMap resultMap = new WritableNativeMap();
-
-        Log.d("FIELD_TYPE", context.getContentResolver().getType(Uri.parse(imageLocation)));
-        try (Cursor cursor = context.getContentResolver().query(Uri.parse(imageLocation), null, null, null, null, null)) {
-            if (cursor != null && cursor.moveToFirst()) {
-                int displayNameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-                if (!cursor.isNull(displayNameIndex)) {
-                    String fileName = cursor.getString(displayNameIndex);
-                    Log.d("FIELD_NAME", fileName);
-                } else {
-                    Log.d("FIELD_NAME", null);
-                }
-                int mimeIndex = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE);
-                if (!cursor.isNull(mimeIndex)) {
-                    Log.d("FIELD_TYPE", cursor.getString(mimeIndex));
-                }
-                int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
-                if (cursor.isNull(sizeIndex)) {
-                    Log.d("FIELD_SIZE", "size");
-                } else {
-                    Log.d("FIELD_SIZE", Long.toString(cursor.getLong(sizeIndex)));
-                }
-            }
-        }
-
 
         coordinatesMap.put("tanggal_status", new CoordinatesData(new int[]{100,152,296,83}, new String[] {"transaksi","berhasil","gagal"}));
         coordinatesMap.put("admin_nominal", new CoordinatesData(new int[]{30, 876, 437, 48}, new String[] {}));
@@ -91,10 +69,10 @@ public class OpenCVModules extends ReactContextBaseJavaModule {
         String dataPath = context.getFilesDir().getAbsolutePath() + "/tesseract";
         copyAssets(context, dataPath);
 
-        Uri cacheFileLoc = copyFileToLocalStorage(context, Uri.parse(imageLocation));
+        Uri cacheFileLoc = copyFileToLocalStorage(context, Uri.parse(imageLocation), (String) fileData.get("FIELD_NAME"));
         Mat image = imagePreProcessing(cacheFileLoc.getPath());
         TessBaseAPI tess = new TessBaseAPI();
-        tess.init(dataPath, "eng");
+        tess.init(dataPath, "eng+ind");
         for (Map.Entry<String, CoordinatesData> entry : coordinatesMap.entrySet()){
             String keyValue = entry.getKey();
             int[] coordinates = entry.getValue().coordinates;
@@ -102,8 +80,8 @@ public class OpenCVModules extends ReactContextBaseJavaModule {
             Rect rect = new Rect(coordinates[0], coordinates[1], coordinates[2], coordinates[3]);
             Mat roi = new Mat(image, rect);
             String textResult = textProcessing(tess, roi, dataPath);
-            List<String> cleanedTextList = cleanText(textResult, ignoreKeyword);
-            resultMap.putString(keyValue, cleanedTextList.toString());
+            WritableArray cleanedTextList = cleanText(textResult, ignoreKeyword);
+            resultMap.putArray(keyValue, cleanedTextList);
         }
         tess.recycle();
         File imageCache = new File(cacheFileLoc.getPath());
@@ -111,7 +89,14 @@ public class OpenCVModules extends ReactContextBaseJavaModule {
         promise.resolve(resultMap);
     }
 
-    private Uri copyFileToLocalStorage(Context context, Uri uri){
+    @ReactMethod
+    public void getExtensionFile(String file_loc, Promise promise){
+        Context context = getReactApplicationContext();
+        Map fileData = getFileData(context, Uri.parse(file_loc));
+        promise.resolve(fileData.get("FIELD_TYPE"));
+    }
+
+    private Uri copyFileToLocalStorage(Context context, Uri uri, String fileName){
         File dir = context.getCacheDir();
         dir = new File(dir, UUID.randomUUID().toString());
         try{
@@ -119,7 +104,7 @@ public class OpenCVModules extends ReactContextBaseJavaModule {
             if (!didCreateDir) {
                 throw new IOException("failed to create directory at " + dir.getAbsolutePath());
             }
-            File destFile = new File(dir, "name.jpg");
+            File destFile = new File(dir, fileName);
             Uri copyPath = copyFile(context, uri, destFile);
             return copyPath;
         }
@@ -128,6 +113,34 @@ public class OpenCVModules extends ReactContextBaseJavaModule {
             Log.d("errorLog", "desc", e);
             return uri;
         }
+    }
+
+    public static Map getFileData(Context context, Uri uri){
+        Map<String, String> fileData = new HashMap<>();
+
+        fileData.put("FIELD_TYPE", context.getContentResolver().getType(uri));
+        try (Cursor cursor = context.getContentResolver().query(uri, null, null, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int displayNameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (!cursor.isNull(displayNameIndex)) {
+                    String fileName = cursor.getString(displayNameIndex);
+                    fileData.put("FIELD_NAME", fileName);
+                } else {
+                    fileData.put("FIELD_NAME", null);
+                }
+                int mimeIndex = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE);
+                if (!cursor.isNull(mimeIndex)) {
+                    fileData.put("FIELD_TYPE", cursor.getString(mimeIndex));
+                }
+                int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
+                if (cursor.isNull(sizeIndex)) {
+                    fileData.put("FIELD_SIZE", "size");
+                } else {
+                    fileData.put("FIELD_SIZE", Long.toString(cursor.getLong(sizeIndex)));
+                }
+            }
+        }
+        return fileData;
     }
 
     public static Uri copyFile(Context context, Uri uri, File destFile) throws IOException {
@@ -162,9 +175,9 @@ public class OpenCVModules extends ReactContextBaseJavaModule {
         return bitmap;
     }
 
-    private List<String> cleanText(String resultText, String[] ignoreKeywords){
-        List<String> xz = new ArrayList<>();
+    private WritableArray cleanText(String resultText, String[] ignoreKeywords){
         Map<String, List<String>> result = new HashMap<>();
+        WritableArray array = Arguments.createArray();
 
         String[] lines = resultText.split("\n");
         for (String line : lines) {
@@ -184,10 +197,10 @@ public class OpenCVModules extends ReactContextBaseJavaModule {
 
             // If none of the ignore keywords are found, add the line to the list
             if (count == 0) {
-                xz.add(line);
+                array.pushString(line);
             }
         }
-        return xz;
+        return array;
     }
 
     private int countOccurrences(String text, String keyword) {
@@ -243,6 +256,4 @@ public class OpenCVModules extends ReactContextBaseJavaModule {
             out.write(buffer, 0, read);
         }
     }
-
-
 }

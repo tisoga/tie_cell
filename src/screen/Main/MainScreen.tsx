@@ -16,8 +16,9 @@ type props = NativeStackScreenProps<RootStackParamList, 'Home'>
 const MainScreen = ({ navigation, route }: props) => {
     const { selectedTheme } = useTheme()
     const [printer, setPrinter] = useRecoilState(printerConnectedState)
-    const file = route.params?.file
     const [isLoading, setLoading] = useState(false)
+    const file = route.params?.file
+    const fileType = route.params?.fileType
 
     const openSetting = () => {
         navigation.navigate('Settings')
@@ -66,7 +67,7 @@ const MainScreen = ({ navigation, route }: props) => {
                             onPress={openSetting}
                         />
                     </View>
-                    <ChooseFileMode pdf={file} />
+                    <ChooseFileMode fileBg={file} fileType={fileType} />
                 </>
             }
 

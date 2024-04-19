@@ -1,24 +1,25 @@
 import { useEffect, useState } from "react"
-import { Button, TextInput, View, Text, ScrollView, NativeModules } from "react-native"
+import { Button, TextInput, View, Text, ScrollView } from "react-native"
 import { Extractor } from "react-native-pdf-extractor"
 import DocumentPicker, { isCancel, isInProgress, types } from 'react-native-document-picker'
 import styles from "./styles"
 import useTheme from "../../hooks/useTheme"
 import { TextResult, Transient } from "react-native-pdf-extractor/src/types"
 import ThermalPrinterModule from 'react-native-thermal-printer';
-import { deleteCacheFile, footerFormat, formatToIDR, getAbsolutePath, headerFormat, makeFormattedString } from "../../utils"
+import { footerFormat, formatToIDR, headerFormat, makeFormattedString } from "../../utils"
 import Modal from 'react-native-modal'
 import TextInputModal from "./components/TextInputModal"
 import ButtonModal from "./components/ButtonModal"
 import { FileType } from "../../type"
+import OpenCV from "../../utils/OpenCVModules"
 
 type ChooseFileModeProps = {
-    pdf?: any
+    fileBg?: any
+    fileType?: String
 }
 
-const ChooseFileMode = ({ pdf }: ChooseFileModeProps) => {
+const ChooseFileMode = ({ fileBg, fileType }: ChooseFileModeProps) => {
     const { selectedTheme } = useTheme()
-    const { OpenCVModule } = NativeModules;
     const [isModalVisible, setModalVisible] = useState(false)
     const [file, setFile] = useState<FileType>({
         name: '',
@@ -32,17 +33,20 @@ const ChooseFileMode = ({ pdf }: ChooseFileModeProps) => {
     const [fileTypeProcess, setFileTypeProcess] = useState('')
 
     useEffect(() => {
-        if (pdf) {
-            setFileUri(pdf)
-            setModalVisible(true)
+        if (fileBg) {
+            if (fileType?.toLowerCase().includes("image")) {
+                console.log(fileBg)
+            }
+            else {
+                setFileUri(fileBg)
+                setModalVisible(true)
+            }
         }
-    }, [pdf])
+    }, [fileBg, fileType])
 
     const ChooseFile = async () => {
         try {
             const result = await DocumentPicker.pickSingle({ type: [types.pdf, types.images] })
-            const res = await OpenCVModule.processImage(result.uri)
-            console.log(res)
             setFile({
                 name: result.name as string,
                 uri: result.uri
@@ -265,7 +269,13 @@ const ChooseFileMode = ({ pdf }: ChooseFileModeProps) => {
     }
 
     const onProcess = async () => {
-        setFileUri(file.uri)
+        const fileType = await OpenCV.getExtensionFile(file.uri)
+        if (fileType === 'image') {
+            console.log(await OpenCV.processImage(file.uri))
+        }
+        else {
+            setFileUri(file.uri)
+        }
     }
 
     const onChangeText = (i: number, value: string) => {
