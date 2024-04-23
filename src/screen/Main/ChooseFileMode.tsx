@@ -262,6 +262,33 @@ const ChooseFileMode = ({ fileBg, fileType }: ChooseFileModeProps) => {
         setModalVisible(true)
     }
 
+    const strukTransfer = (dataSet: any) => {
+        const total = dataSet.total[0].replace('Rp','').replaceAll('.','')
+        const adminNominal = dataSet.admin_nominal[0].toLowerCase().includes('admin') ? 0 : parseInt(total) - parseInt(dataSet.admin_nominal[0].replace('Nominal', '').replace("Rp",'').replaceAll('.',''))
+        const jenisTransaksi = dataSet.jenis_transaksi[0].replace("Jenis Transaksi ",'')
+        const noRef = dataSet.no_ref[0].replace("No. Ref ","")
+        const sumberRek = dataSet.sumber_rek[0].slice(0,4) + " **** **** " + dataSet.sumber_rek[0].slice(-3)
+        const sumberBank = dataSet.sumber[1]
+        const namaPengirim = dataSet.sumber[0]
+        const tglTransaksi = dataSet.tanggal_status[0]
+        const tujuanRek = dataSet.tujuan[2].replaceAll(' ','')
+        const tujuanBank = dataSet.tujuan[1]
+        const namaPenerima = dataSet.tujuan[0]
+
+        console.log(dataSet)
+        console.log(adminNominal)
+        console.log(jenisTransaksi)
+        console.log(noRef)
+        console.log(sumberRek)
+        console.log(sumberBank)
+        console.log(namaPengirim)
+        console.log(tglTransaksi)
+        console.log(adminNominal === 0 ? total : parseInt(total) - adminNominal)
+        console.log(tujuanRek)
+        console.log(tujuanBank)
+        console.log(namaPenerima)
+    }
+
     const onResult = (data: Transient | null) => {
         if (!data || !data.text) return
         if (!data.text.includes('** TIECELLREBORN **')) return console.log('invalid pdf file')
@@ -271,7 +298,7 @@ const ChooseFileMode = ({ fileBg, fileType }: ChooseFileModeProps) => {
     const onProcess = async () => {
         const fileType = await OpenCV.getExtensionFile(file.uri)
         if (fileType === 'image') {
-            console.log(await OpenCV.processImage(file.uri))
+            strukTransfer(await OpenCV.processImage(file.uri))
         }
         else {
             setFileUri(file.uri)
