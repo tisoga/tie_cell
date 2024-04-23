@@ -1,4 +1,7 @@
 import RNFetchBlob from "rn-fetch-blob";
+import { Image } from "react-native";
+import permata from '../assets/image/permata.jpg';
+import bri from '../assets/image/bri.jpg';
 
 const splitStringLength = (str: string, maxLength: number, resultArray: Array<string> = []) => {
     const chunk: string = str.slice(0, maxLength);
@@ -74,14 +77,13 @@ const formatForToken = (arr: string[]) => {
     return str1 + str2.join('')
 }
 
-export const headerFormat = (tgl: string, type: 'voucher' | 'token' | 'listrik' | 'indihome') => {
+export const headerFormat = (tgl: string, type: 'voucher' | 'token' | 'listrik' | 'indihome' | 'permata' | 'bri') => {
     const headerStr = `[C]<font size='big'><b>TIE CELL PERUM</b></font>\n` +
         '[C]Pondok Asri Cikawao Blok D5/11\n' +
         `[L]\n[C]${tgl}\n`
     return headerStr + strukTypeFormat(type)
 }
-
-export const footerFormat = (type?: 'pln' | 'indihome') => {
+export const footerFormat = (type?: 'pln' | 'indihome' | 'permata' | 'bri') => {
     let footerStr = ''
     if (type === 'pln') {
         footerStr += `[L]\n[C]Info Hubungi Call Center 123\n`
@@ -91,6 +93,20 @@ export const footerFormat = (type?: 'pln' | 'indihome') => {
         footerStr += `[L]\n[C]Mohon Simpan Struk Ini Sebagai\n`
         footerStr += `[C]Bukti Pembayaran yang sah.\n\n`
         footerStr += `[C]Info Hubungi Call Center: 143\n`
+    }
+    else if (type === 'permata') {
+        footerStr += `[L]\n[C]Informasi Lebih Lanjut,\n`
+        footerStr += `[C]Hubungi PermataTel : 1500111\n`
+        footerStr += `[C]Atau Kunjungi Permata Terdekat\n`
+        footerStr += `[L]\n[C]Mohon Simpan Struk Ini Sebagai\n`
+        footerStr += `[C]Bukti Pembayaran yang sah.\n`
+    }
+    else if (type === 'bri') {
+        footerStr += `[L]\n[C]Informasi Lebih Lanjut,\n`
+        footerStr += `[C]Hubungi ContactBRI : 1500017\n`
+        footerStr += `[C]Atau Kunjungi BRI Terdekat\n`
+        footerStr += `[L]\n[C]Mohon Simpan Struk Ini Sebagai\n`
+        footerStr += `[C]Bukti Pembayaran yang sah.\n`
     }
     footerStr += `[L]\n[C]Terima Kasih\n`
     footerStr += `[C]Atas Kepercayaan Anda`
@@ -102,20 +118,33 @@ const strukTypeFormat = (type: string) => {
     if (type === 'voucher') {
         strukTipe += `[C]<font size='tall'><b>Struk Pembelian Voucher</b></font>\n`
         strukTipe += `[C]<font size='tall'><b>Data</b></font>\n`
+        strukTipe += `[L]------------------------------\n`
     }
     else if (type === 'token') {
         strukTipe += `[C]<font size='tall'><b>Struk Pembelian Token</b></font>\n`
         strukTipe += `[C]<font size='tall'><b>Listrik</b></font>\n`
+        strukTipe += `[L]------------------------------\n`
     }
     else if (type === 'listrik') {
         strukTipe += `[C]<font size='tall'><b>Struk Pembayaran Tagihan</b></font>\n`
         strukTipe += `[C]<font size='tall'><b>Listrik PascaBayar</b></font>\n`
+        strukTipe += `[L]------------------------------\n`
     }
     else if (type === 'indihome') {
         strukTipe += `[C]<font size='tall'><b>Struk Pembayaran Tagihan</b></font>\n`
         strukTipe += `[C]<font size='tall'><b>Indihome</b></font>\n`
+        strukTipe += `[L]------------------------------\n`
     }
-    strukTipe += `[L]------------------------------\n`
+    else if (type === 'permata') {
+        const image = Image.resolveAssetSource(permata).uri
+        strukTipe += `[L]<img>${image}</img>\n`
+        strukTipe += `[L]\n[C]<font size='tall'><b>      Struk Bukti Transfer</b></font>\n[L]\n`
+    }
+    else if (type === 'bri') {
+        const image = Image.resolveAssetSource(bri).uri
+        strukTipe += `[L]<img>${image}</img>\n`
+        strukTipe += `[L]\n[C]<font size='tall'><b>      Struk Bukti Transfer</b></font>\n[L]\n`
+    }
     return strukTipe
 }
 
@@ -134,11 +163,22 @@ export const makeFormattedString = (listString: string[][]) => {
         else if (e[0] === 'TOKEN') {
             resultStr += formatForToken(e)
         }
+        else if (e[0] === 'TF_SENDER') {
+            resultStr += formatTransfer("PENGIRIM")
+        }
+        else if (e[0] === 'TF_RECEIVER') {
+            resultStr += formatTransfer("PENERIMA")
+        }
         else {
             resultStr += formattedString(e)
         }
     });
     return resultStr
+}
+
+const formatTransfer = (type: 'PENGIRIM' | 'PENERIMA') => {
+    let str = `[L]\n[L]<font size='tall'><b>${type} : </b></font>\n[L]\n`
+    return str
 }
 
 export const getAbsolutePath = async(uri:string) => {

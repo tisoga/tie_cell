@@ -35,7 +35,15 @@ const ChooseFileMode = ({ fileBg, fileType }: ChooseFileModeProps) => {
     useEffect(() => {
         if (fileBg) {
             if (fileType?.toLowerCase().includes("image")) {
-                console.log(fileBg)
+                // setFile({
+                //     name: 'bukti-transfer-bg' as string,
+                //     uri: fileBg
+                // })
+                const processImage = async() => {
+                    strukTransfer(await OpenCV.processImage(fileBg))
+                }
+
+                processImage()
             }
             else {
                 setFileUri(fileBg)
@@ -263,11 +271,12 @@ const ChooseFileMode = ({ fileBg, fileType }: ChooseFileModeProps) => {
     }
 
     const strukTransfer = (dataSet: any) => {
+        setFileTypeProcess('transfer')
         const total = dataSet.total[0].replace('Rp','').replaceAll('.','')
         const adminNominal = dataSet.admin_nominal[0].toLowerCase().includes('admin') ? 0 : parseInt(total) - parseInt(dataSet.admin_nominal[0].replace('Nominal', '').replace("Rp",'').replaceAll('.',''))
-        const jenisTransaksi = dataSet.jenis_transaksi[0].replace("Jenis Transaksi ",'')
+        const jenisTransaksi = dataSet.jenis_transaksi[0].replace("Jenis Transaksi ",'').replace("Transfer ",'')
         const noRef = dataSet.no_ref[0].replace("No. Ref ","")
-        const sumberRek = dataSet.sumber_rek[0].slice(0,4) + " **** **** " + dataSet.sumber_rek[0].slice(-3)
+        const sumberRek = dataSet.sumber_rek[0].slice(0,4) + "********" + dataSet.sumber_rek[0].slice(-3)
         const sumberBank = dataSet.sumber[1]
         const namaPengirim = dataSet.sumber[0]
         const tglTransaksi = dataSet.tanggal_status[0]
@@ -275,18 +284,26 @@ const ChooseFileMode = ({ fileBg, fileType }: ChooseFileModeProps) => {
         const tujuanBank = dataSet.tujuan[1]
         const namaPenerima = dataSet.tujuan[0]
 
-        console.log(dataSet)
-        console.log(adminNominal)
-        console.log(jenisTransaksi)
-        console.log(noRef)
-        console.log(sumberRek)
-        console.log(sumberBank)
-        console.log(namaPengirim)
-        console.log(tglTransaksi)
-        console.log(adminNominal === 0 ? total : parseInt(total) - adminNominal)
-        console.log(tujuanRek)
-        console.log(tujuanBank)
-        console.log(namaPenerima)
+        const dataVoucher = [
+            [tglTransaksi],
+            ['bri'],
+            ['NO REF', noRef],
+            ['TRANSFER TYPE', jenisTransaksi],
+            ['TF_SENDER'],
+            ['BANK ASAL', sumberBank],
+            ['NOMOR REKENING', sumberRek],
+            ['ATAS NAMA', namaPengirim],
+            ['TF_RECEIVER'],
+            ['BANK TUJUAN', tujuanBank],
+            ['NOMOR REKENING', tujuanRek],
+            ['ATAS NAMA', namaPenerima],
+            ['NOMINAL', adminNominal === 0 ? total : String(parseInt(total) - adminNominal)]
+        ]
+
+        console.log(dataVoucher)
+        setListOfData(dataVoucher)
+        setInitialData(dataVoucher)
+        setModalVisible(true)
     }
 
     const onResult = (data: Transient | null) => {
@@ -418,6 +435,30 @@ const ChooseFileMode = ({ fileBg, fileType }: ChooseFileModeProps) => {
                 }
                 onCloseModal()
             }
+            else if (fileTypeProcess === 'transfer') {
+                const data = listOfData as string[][]
+                const date = data.splice(0, 1)[0][0]
+                const bankAsal = data.splice(0, 1)[0][0]
+                const rpFormatAdm = formatToIDR(Number(harga))
+                const total = formatToIDR(Number(harga) + Number(data[10][1]))
+                data[10][1] = formatToIDR(Number(data[10][1]))
+                data.splice(11, 0, ['ADM', rpFormatAdm])
+                data.splice(12, 0, ['TOTAL', total])
+                const formatedPrinted = headerFormat(date, bankAsal as 'permata' | 'bri') + makeFormattedString(data) + footerFormat(bankAsal as 'permata' | 'bri')
+                console.log(formatedPrinted)
+                try {
+                    // ThermalPrinterModule.printBluetooth({
+                    //     payload: formatedPrinted,
+                    //     mmFeedPaper: 3,
+                    //     printerWidthMM: 58,
+                    //     printerNbrCharactersPerLine: 30
+                    // })
+                }
+                catch (e) {
+                    console.log(e)
+                }
+                onCloseModal()
+            }
         }
         else {
             console.log('err')
@@ -442,7 +483,7 @@ const ChooseFileMode = ({ fileBg, fileType }: ChooseFileModeProps) => {
                             index !== 0 &&
                             <TextInputModal label={arr[0]} value={arr[1]} editable={isDataEditable} key={index} onChangeText={onChangeText} index={index} />
                         ))}
-                        <TextInputModal label="Harga" value={harga} placeholder={'Masukan Harga'} editable={true} type="numeric" onChangeText={onChangeText} index={-1} />
+                        <TextInputModal label={fileTypeProcess === 'transfer' ? 'ADMIN' : 'HARGA'} value={harga} placeholder={'Masukan Harga'} editable={true} type="numeric" onChangeText={onChangeText} index={-1} />
                         <View style={{ flexDirection: 'row', paddingHorizontal: 10, marginTop: 10, gap: 4, marginBottom: 10 }}>
                             <ButtonModal label={isDataEditable ? 'Reset' : 'Edit'} color={isDataEditable ? 'red' : 'yellow'} onPress={isDataEditable ? onPressReset : onPressEdit} />
                             <ButtonModal label="Print" color="green" onPress={onPressPrint} />
