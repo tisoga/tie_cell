@@ -118,7 +118,9 @@ dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
     implementation("com.facebook.react:flipper-integration")
+    implementation("cz.adaptech.tesseract4android:tesseract4android:4.7.0")
     implementation project(':react-native-pdf-extractor')
+    implementation project(':OpenCV')
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {

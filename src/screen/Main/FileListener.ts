@@ -1,20 +1,25 @@
 import { Linking } from 'react-native'
 import { NavigationProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../type';
+import OpenCV from '../../utils/OpenCVModules';
 
 interface FileListenerProps {
-    navigation: NavigationProp<RootStackParamList>; 
+    navigation: NavigationProp<RootStackParamList>;
 }
 
 export const setupFileListener = ({ navigation }: FileListenerProps) => {
-    const handleOpenURL = (event: any, background: boolean = false) => {
+    const handleOpenURL = async (event: any, background: boolean = false) => {
+        let fileType;
         // console.log(background)
         const fileUri = background ? event : event.url
-        // console.log('File opened:', fileUri);
+        
+        if (fileUri) {
+            fileType = await OpenCV.getExtensionFile(fileUri)
+        }
 
-        // Use the navigation.navigate function to navigate to PDFViewer
         navigation.navigate('Home', {
-            file: fileUri
+            file: fileUri,
+            fileType: fileType
         });
     };
 
@@ -22,7 +27,7 @@ export const setupFileListener = ({ navigation }: FileListenerProps) => {
 
     Linking.getInitialURL().then(url => {
         handleOpenURL(url, true)
-        console.log(url)
+        // console.log(url)
     })
 
     // Clean up the event listener when needed
