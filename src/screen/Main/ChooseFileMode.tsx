@@ -39,7 +39,7 @@ const ChooseFileMode = ({ fileBg, fileType }: ChooseFileModeProps) => {
                 //     name: 'bukti-transfer-bg' as string,
                 //     uri: fileBg
                 // })
-                const processImage = async() => {
+                const processImage = async () => {
                     strukTransfer(await OpenCV.processImage(fileBg))
                 }
 
@@ -271,39 +271,74 @@ const ChooseFileMode = ({ fileBg, fileType }: ChooseFileModeProps) => {
     }
 
     const strukTransfer = (dataSet: any) => {
+        console.log(dataSet)
         setFileTypeProcess('transfer')
-        const total = dataSet.total[0].replace('Rp','').replaceAll('.','')
-        const adminNominal = dataSet.admin_nominal[0].toLowerCase().includes('admin') ? 0 : parseInt(total) - parseInt(dataSet.admin_nominal[0].replace('Nominal', '').replace("Rp",'').replaceAll('.',''))
-        const jenisTransaksi = dataSet.jenis_transaksi[0].replace("Jenis Transaksi ",'').replace("Transfer ",'')
-        const noRef = dataSet.no_ref[0].replace("No. Ref ","")
-        const sumberRek = dataSet.sumber_rek[0].slice(0,4) + "********" + dataSet.sumber_rek[0].slice(-3)
-        const sumberBank = dataSet.sumber[1]
-        const namaPengirim = dataSet.sumber[0]
-        const tglTransaksi = dataSet.tanggal_status[0]
-        const tujuanRek = dataSet.tujuan[2].replaceAll(' ','')
-        const tujuanBank = dataSet.tujuan[1]
-        const namaPenerima = dataSet.tujuan[0]
+        if (dataSet.bankName === 'bri') {
+            const total = dataSet.total[0].replace('Rp', '').replaceAll('.', '')
+            const adminNominal = dataSet.admin_nominal[0].toLowerCase().includes('admin') ? 0 : parseInt(total) - parseInt(dataSet.admin_nominal[0].replace('Nominal', '').replace("Rp", '').replaceAll('.', ''))
+            const jenisTransaksi = dataSet.jenis_transaksi[0].replace("Jenis Transaksi ", '').replace("Transfer ", '')
+            const noRef = dataSet.no_ref[0].replace("No. Ref ", "")
+            const sumberRek = dataSet.sumber_rek[0].slice(0, 4) + "********" + dataSet.sumber_rek[0].slice(-3)
+            const sumberBank = dataSet.sumber[1]
+            const namaPengirim = dataSet.sumber[0]
+            const tglTransaksi = dataSet.tanggal_status[0]
+            const tujuanRek = dataSet.tujuan[2].replaceAll(' ', '')
+            const tujuanBank = dataSet.tujuan[1]
+            const namaPenerima = dataSet.tujuan[0]
 
-        const dataVoucher = [
-            [tglTransaksi],
-            ['bri'],
-            ['NO REF', noRef],
-            ['TRANSFER TYPE', jenisTransaksi],
-            ['TF_SENDER'],
-            ['BANK ASAL', sumberBank],
-            ['NOMOR REKENING', sumberRek],
-            ['ATAS NAMA', namaPengirim],
-            ['TF_RECEIVER'],
-            ['BANK TUJUAN', tujuanBank],
-            ['NOMOR REKENING', tujuanRek],
-            ['ATAS NAMA', namaPenerima],
-            ['NOMINAL', adminNominal === 0 ? total : String(parseInt(total) - adminNominal)]
-        ]
+            const dataVoucher = [
+                [tglTransaksi],
+                [dataSet.bankName],
+                ['NO REF', noRef],
+                ['TRANSFER TYPE', jenisTransaksi],
+                ['TF_SENDER'],
+                ['BANK ASAL', sumberBank],
+                ['NOMOR REKENING', sumberRek],
+                ['ATAS NAMA', namaPengirim],
+                ['TF_RECEIVER'],
+                ['BANK TUJUAN', tujuanBank],
+                ['NOMOR REKENING', tujuanRek],
+                ['ATAS NAMA', namaPenerima],
+                ['NOMINAL', adminNominal === 0 ? total : String(parseInt(total) - adminNominal)]
+            ]
 
-        console.log(dataVoucher)
-        setListOfData(dataVoucher)
-        setInitialData(dataVoucher)
-        setModalVisible(true)
+            setListOfData(dataVoucher)
+            setInitialData(dataVoucher)
+            setModalVisible(true)
+        }
+        else if (dataSet.bankName === 'permata') {
+            setFileTypeProcess('transfer')
+            const jumlahTrf = dataSet.amount[0].replace('Rp', '').replace(',', '').replace('.', '').trim()
+            const penerima = dataSet.tujuan[0]
+            const bankPenerima = dataSet.tujuan[1]
+            const rekeningPenerima = dataSet.tujuan[2].replace('(IDR)', '').replaceAll("-",'').trim()
+            const pengirim = dataSet.sumber[0]
+            const bankPengirim = dataSet.sumber[1]
+            const rekeningPengirim = dataSet.sumber[2].replace('(IDR)', '').trim()
+            const transferType = dataSet.jenis_transaksi[0]
+            const ref = dataSet.ref_tgl[0]
+            const tanggal = `${dataSet.ref_tgl[1]} ${dataSet.ref_tgl[2]}`
+
+            const dataVoucher = [
+                [tanggal],
+                ['permata'],
+                ['NO REF', ref],
+                ['TRANSFER TYPE', transferType],
+                ['TF_SENDER'],
+                ['BANK ASAL', bankPengirim],
+                ['NOMOR REKENING', rekeningPengirim],
+                ['ATAS NAMA', pengirim],
+                ['TF_RECEIVER'],
+                ['BANK TUJUAN', bankPenerima],
+                ['NOMOR REKENING', rekeningPenerima],
+                ['ATAS NAMA', penerima],
+                ['NOMINAL', jumlahTrf.slice(0, -2)]
+            ]
+
+            setListOfData(dataVoucher)
+            setInitialData(dataVoucher)
+            setModalVisible(true)
+        }
     }
 
     const onResult = (data: Transient | null) => {
