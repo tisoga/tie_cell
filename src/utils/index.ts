@@ -1,4 +1,3 @@
-import RNFetchBlob from "rn-fetch-blob";
 import { Image } from "react-native";
 import permata from '../assets/image/permata.jpg';
 import bri from '../assets/image/bri.jpg';
@@ -179,18 +178,4 @@ export const makeFormattedString = (listString: string[][]) => {
 const formatTransfer = (type: 'PENGIRIM' | 'PENERIMA') => {
     let str = `[L]\n[L]<font size='tall'><b>${type} : </b></font>\n[L]\n`
     return str
-}
-
-export const getAbsolutePath = async(uri:string) => {
-    try{
-        const stat = await RNFetchBlob.fs.stat(uri as string)
-        return stat.path
-    }
-    catch(e){
-        console.log(e)
-    }
-}
-
-export const deleteCacheFile = (path:string) => {
-    RNFetchBlob.fs.exists(path).then((fileExist) => { if(fileExist) { RNFetchBlob.fs.unlink(path) } })
 }

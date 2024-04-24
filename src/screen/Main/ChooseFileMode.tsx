@@ -35,10 +35,6 @@ const ChooseFileMode = ({ fileBg, fileType }: ChooseFileModeProps) => {
     useEffect(() => {
         if (fileBg) {
             if (fileType?.toLowerCase().includes("image")) {
-                // setFile({
-                //     name: 'bukti-transfer-bg' as string,
-                //     uri: fileBg
-                // })
                 const processImage = async () => {
                     strukTransfer(await OpenCV.processImage(fileBg))
                 }
