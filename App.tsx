@@ -7,12 +7,12 @@ import MainScreen from './src/screen/Main'
 import BluetoothManageScreen from './src/screen/BluetoothManage'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { useEffect } from 'react'
-import { BluetoothManager } from '@brooons/react-native-bluetooth-escpos-printer'
 import { requestMultiple, PERMISSIONS } from 'react-native-permissions'
 import { setupFileListener } from './src/screen/Main/FileListener'
 import { useNavigation } from '@react-navigation/native'
 import { RootStackNavigation, RootStackParamList } from './src/type'
 import ReceiveSharingIntent from 'react-native-receive-sharing-intent';
+import BleManager from "react-native-ble-manager"
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
 
@@ -21,17 +21,26 @@ const App = (): React.JSX.Element => {
   const navigation = useNavigation<RootStackNavigation>()
 
   useEffect(() => {
-    DeviceEventEmitter.addListener(
-      BluetoothManager.EVENT_DEVICE_ALREADY_PAIRED, async (response) => {
-        console.log(response.devices);
-        // setConnectedDevice(JSON.parse(response.devices))
-        // response.devices would returns the paired devices array in JSON string.
-      }
-    );
+    // DeviceEventEmitter.addListener(
+    //   BluetoothManager.EVENT_DEVICE_ALREADY_PAIRED, async (response) => {
+    //     console.log(response.devices);
+    //     // setConnectedDevice(JSON.parse(response.devices))
+    //     // response.devices would returns the paired devices array in JSON string.
+    //   }
+    // );
+
+    const BTListener = BleManager.addListener("BleManagerPeripheralDidBond", (args) => {
+      console.log(args)
+    })
+
+    BleManager.start().then(() => {
+      // Success code
+      console.log("Scan started");
+    });
 
     const cleanupFileListener = setupFileListener({ navigation });
 
-    ReceiveSharingIntent.getReceivedFiles((files:any) => {
+    ReceiveSharingIntent.getReceivedFiles((files: any) => {
       // files returns as JSON Array example
       //[{ filePath: null, text: null, weblink: null, mimeType: null, contentUri: null, fileName: null, extension: null }]
       console.log(files)
@@ -52,12 +61,18 @@ const App = (): React.JSX.Element => {
     return () => {
       cleanupFileListener();
       ReceiveSharingIntent.clearReceivedFiles();
+      BTListener.remove()
     };
 
   }, [])
 
   useEffect(() => {
-    requestMultiple([PERMISSIONS.ANDROID.BLUETOOTH_CONNECT, PERMISSIONS.ANDROID.BLUETOOTH_SCAN, PERMISSIONS.ANDROID.BLUETOOTH_ADVERTISE, PERMISSIONS.ANDROID.READ_MEDIA_AUDIO, PERMISSIONS.ANDROID.READ_MEDIA_IMAGES, PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE]).then((res) => {
+    requestMultiple([
+      PERMISSIONS.ANDROID.BLUETOOTH_CONNECT, PERMISSIONS.ANDROID.BLUETOOTH_SCAN, PERMISSIONS.ANDROID.BLUETOOTH_ADVERTISE,
+      PERMISSIONS.ANDROID.READ_MEDIA_AUDIO, PERMISSIONS.ANDROID.READ_MEDIA_IMAGES, PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE,
+      PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION, PERMISSIONS.ANDROID.ACCESS_COARSE_LOCATION
+
+    ]).then((res) => {
       console.log(res)
     })
   }, [])

@@ -1,6 +1,4 @@
-import { Button, Text, View, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from "react-native"
-import { BluetoothManager } from '@brooons/react-native-bluetooth-escpos-printer'
-import BluetoothStateManager from 'react-native-bluetooth-state-manager'
+import { Button, Text, View, TouchableOpacity, Alert } from "react-native"
 import { useEffect, useState } from "react"
 import styles from "./styles"
 import useTheme from "../../hooks/useTheme"
@@ -9,11 +7,11 @@ import { useSetRecoilState } from "recoil"
 import { printerConnectedState } from "../../recoil/atom"
 import LoadingScreen from "../Loading"
 import { DeviceListType } from "../../type"
+import BleManager from 'react-native-ble-manager'
 
 
 const BluetoothManageScreen = () => {
     const { selectedTheme } = useTheme()
-    // const btStatus = useSignal<boolean>(false)
     const [btStatus, setBTStatus] = useState<boolean>(false)
     const [deviceList, setDevice] = useState<DeviceListType[]>([])
     const [connectedDevice, setConnectedDevice] = useState<DeviceListType[]>([])
@@ -22,32 +20,37 @@ const BluetoothManageScreen = () => {
 
     useEffect(() => {
         const checkBluetoothStatus = async () => {
-            const result = await BluetoothManager.checkBluetoothEnabled()
-            setBTStatus(result)
+            const res = await BleManager.checkState()
+            setBTStatus(res === 'on' ? true : false)
         }
-        const subBluetoothStatus = BluetoothStateManager.onStateChange((bState) => {
-            if (bState === 'PoweredOff') {
+
+        const subBluetoothStatus = BleManager.addListener("BleManagerDidUpdateState", (bState) => {
+            if (bState.state === 'off') {
                 setBTStatus(false)
                 setDevice([])
             }
         }, true)
 
+
         checkBluetoothStatus()
 
-        return () => subBluetoothStatus.remove()
+        return () => {
+            subBluetoothStatus.remove()
+        }
     }, [btStatus])
 
 
     const activeBluetooth = async () => {
-        await BluetoothManager.enableBluetooth()
+        await BleManager.enableBluetooth()
         setBTStatus(true)
     }
 
     const scanDevice = async () => {
         setLoading(true)
         try {
-            const res = await BluetoothManager.scanDevices()
-            setDevice(JSON.parse(res).found)
+            await BleManager.scan([], 5, false)
+            await new Promise(resolve => setTimeout(resolve, 6000))
+            stopScan()
             setLoading(false)
         }
         catch (e) {
@@ -56,14 +59,15 @@ const BluetoothManageScreen = () => {
     }
 
     const connectDevice = async (device: DeviceListType) => {
-        // console.log(device)
+        console.log(device)
         try {
-            await BluetoothManager.connect(device.address)
+            const res = await BleManager.createBond(device.address)
+            console.log(res)
             setConnectedDevice((oldArr) => [...oldArr, device])
             AsyncStorage.setItem('lastConnected', JSON.stringify(device))
             setPrinter(device)
             Alert.alert('Success', `${device.name} successfully connected.`)
-            // console.log(res)
+            console.log("Connected");
         }
         catch (e) {
             Alert.alert('Error', 'Unable to connect device, please only connect to bluetooth thermal printer')
@@ -73,15 +77,29 @@ const BluetoothManageScreen = () => {
     const unpairDevice = async (device: DeviceListType) => {
         // console.log(connectedDevice)
         try {
-            await BluetoothManager.unpair(device.address)
+            await BleManager.removeBond(device.address)
             const newList = connectedDevice.filter(item => item.address !== device.address)
             setConnectedDevice(newList)
             Alert.alert('Success', `${device.name} successfully unpair.`)
-            // console.log(res)
         }
         catch (e) {
             Alert.alert('Error', 'Unable to connect device, please only connect to bluetooth thermal printer')
         }
+    }
+
+    const stopScan = async () => {
+        BleManager.getDiscoveredPeripherals().then((peripheralsArray) => {
+            const devices: DeviceListType[] = []
+            console.log("Discovered peripherals: " + peripheralsArray.length);
+            console.log(peripheralsArray[2])
+            peripheralsArray.forEach(item => {
+                devices.push({
+                    name: item.name as string,
+                    address: item.id
+                })
+            })
+            setDevice(devices)
+        });
     }
 
 

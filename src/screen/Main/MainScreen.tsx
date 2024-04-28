@@ -7,9 +7,9 @@ import { printerConnectedState } from "../../recoil/atom"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 import { useEffect, useState } from "react"
 import AsyncStorage from "@react-native-async-storage/async-storage"
-import { BluetoothManager } from "@brooons/react-native-bluetooth-escpos-printer"
 import LoadingScreen from "../Loading"
 import { RootStackParamList } from "../../type"
+import BleManager from 'react-native-ble-manager'
 
 type props = NativeStackScreenProps<RootStackParamList, 'Home'>
 
@@ -31,7 +31,7 @@ const MainScreen = ({ navigation, route }: props) => {
                 const device = await AsyncStorage.getItem('lastConnected')
                 if (device) {
                     const dvc = JSON.parse(device)
-                    await BluetoothManager.connect(dvc.address)
+                    await BleManager.connect(dvc.address)
                     setPrinter(dvc)
                 }
                 setLoading(false)
