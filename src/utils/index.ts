@@ -1,7 +1,3 @@
-import { Image } from "react-native";
-import permata from '../assets/image/permata.jpg';
-import bri from '../assets/image/bri.jpg';
-
 const splitStringLength = (str: string, maxLength: number, resultArray: Array<string> = []) => {
     const chunk: string = str.slice(0, maxLength);
     resultArray.push(chunk);
@@ -76,11 +72,11 @@ const formatForToken = (arr: string[]) => {
     return str1 + str2.join('')
 }
 
-export const headerFormat = (tgl: string, type: 'voucher' | 'token' | 'listrik' | 'indihome' | 'permata' | 'bri') => {
+export const headerFormat = (tgl: string, type: 'voucher' | 'token' | 'listrik' | 'indihome' | 'permata' | 'bri' | 'transfer', logoPath?: string) => {
     const headerStr = `[C]<font size='big'><b>TIE CELL PERUM</b></font>\n` +
         '[C]Pondok Asri Cikawao Blok D5/11\n' +
         `[L]\n[C]${tgl}\n`
-    return headerStr + strukTypeFormat(type)
+    return headerStr + strukTypeFormat(type, logoPath)
 }
 export const footerFormat = (type?: 'pln' | 'indihome' | 'permata' | 'bri') => {
     let footerStr = ''
@@ -112,7 +108,7 @@ export const footerFormat = (type?: 'pln' | 'indihome' | 'permata' | 'bri') => {
     return footerStr
 }
 
-const strukTypeFormat = (type: string) => {
+const strukTypeFormat = (type: string, logoPath?: string) => {
     let strukTipe = `[L]------------------------------\n`
     if (type === 'voucher') {
         strukTipe += `[C]<font size='tall'><b>Struk Pembelian Voucher</b></font>\n`
@@ -135,13 +131,13 @@ const strukTypeFormat = (type: string) => {
         strukTipe += `[L]------------------------------\n`
     }
     else if (type === 'permata') {
-        const image = Image.resolveAssetSource(permata).uri
-        strukTipe += `[L]<img>${image}</img>\n`
         strukTipe += `[L]\n[C]<font size='tall'><b>      Struk Bukti Transfer</b></font>\n[L]\n`
     }
     else if (type === 'bri') {
-        const image = Image.resolveAssetSource(bri).uri
-        strukTipe += `[L]<img>${image}</img>\n`
+        strukTipe += `[L]\n[C]<font size='tall'><b>      Struk Bukti Transfer</b></font>\n[L]\n`
+    }
+    else if (type === 'transfer') {
+        strukTipe += `[L]<img>asset:/bri.jpg</img>\n`
         strukTipe += `[L]\n[C]<font size='tall'><b>      Struk Bukti Transfer</b></font>\n[L]\n`
     }
     return strukTipe

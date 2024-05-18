@@ -54,15 +54,22 @@ public class OpenCVModules extends ReactContextBaseJavaModule {
     public void processImage(String imageLocation, Promise promise){
         Context context = getReactApplicationContext();
         Map fileData = getFileData(context, Uri.parse(imageLocation));
+        Mat image;
         String dataPath = context.getFilesDir().getAbsolutePath() + "/tesseract";
+
         copyAssets(context, dataPath);
+
         WritableMap resultMap = new WritableNativeMap();
         TessBaseAPI tess = new TessBaseAPI();
+        Log.d("dataPath", dataPath);
         tess.init(dataPath, "eng+ind");
         Uri cacheFileLoc = copyFileToLocalStorage(context, Uri.parse(imageLocation), (String) fileData.get("FIELD_NAME"));
-        Mat image = imagePreProcessing(cacheFileLoc.getPath());
+        image = imagePreProcessing(cacheFileLoc.getPath(), false);
 
         String bankName = getBankInvoiceType(image, tess, dataPath);
+        if(bankName.equals("bri")){
+            image = imagePreProcessing(cacheFileLoc.getPath(), true);
+        }
         Map<String, CoordinatesData> coordinatesMap = getCoordinate(bankName);
         resultMap.putString("bankName", bankName);
 
@@ -96,7 +103,7 @@ public class OpenCVModules extends ReactContextBaseJavaModule {
         String textResult = textProcessing(tess, roi, dataPath);
         String textClean = textResult.replace("\n", "").replace("\r", "").replace("«", "");
         Log.d("bankName", textClean);
-        if(textClean.toLowerCase().contains("permatabank")){
+        if(textClean.toLowerCase().contains("permata")){
             return "permata";
         }
         else{
@@ -185,8 +192,11 @@ public class OpenCVModules extends ReactContextBaseJavaModule {
         }
     }
 
-    private Mat imagePreProcessing(String imageLocation){
+    private Mat imagePreProcessing(String imageLocation, Boolean isBri){
         Mat image = Imgcodecs.imread(imageLocation);
+        if(!isBri){
+            Imgproc.resize(image, image, new Size(540, 1275));
+        }
         Imgproc.resize(image, image, new Size(500, (image.height() * 500) / image.width()));
         Imgproc.cvtColor(image, image, Imgproc.COLOR_BGR2GRAY);
         return image;
@@ -264,6 +274,7 @@ public class OpenCVModules extends ReactContextBaseJavaModule {
 
         try {
             for (String assetName : am.list("")) {
+                Log.d("Asset", assetName);
                 if (assetName.endsWith(".traineddata")) {
                     InputStream in = am.open("" + assetName);
                     File outFile = new File(tessdataDir, assetName);

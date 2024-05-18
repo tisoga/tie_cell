@@ -1,4 +1,4 @@
-import { Button, Text, View, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from "react-native"
+import { Button, Text, View, TouchableOpacity, Alert } from "react-native"
 import { BluetoothManager } from '@brooons/react-native-bluetooth-escpos-printer'
 import BluetoothStateManager from 'react-native-bluetooth-state-manager'
 import { useEffect, useState } from "react"

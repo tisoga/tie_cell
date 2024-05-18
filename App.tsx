@@ -31,7 +31,7 @@ const App = (): React.JSX.Element => {
 
     const cleanupFileListener = setupFileListener({ navigation });
 
-    ReceiveSharingIntent.getReceivedFiles((files:any) => {
+    ReceiveSharingIntent.getReceivedFiles((files: any) => {
       // files returns as JSON Array example
       //[{ filePath: null, text: null, weblink: null, mimeType: null, contentUri: null, fileName: null, extension: null }]
       console.log(files)
@@ -57,7 +57,14 @@ const App = (): React.JSX.Element => {
   }, [])
 
   useEffect(() => {
-    requestMultiple([PERMISSIONS.ANDROID.BLUETOOTH_CONNECT, PERMISSIONS.ANDROID.BLUETOOTH_SCAN, PERMISSIONS.ANDROID.BLUETOOTH_ADVERTISE, PERMISSIONS.ANDROID.READ_MEDIA_AUDIO, PERMISSIONS.ANDROID.READ_MEDIA_IMAGES, PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE]).then((res) => {
+    requestMultiple([
+      PERMISSIONS.ANDROID.BLUETOOTH_CONNECT,
+      PERMISSIONS.ANDROID.BLUETOOTH_SCAN,
+      PERMISSIONS.ANDROID.BLUETOOTH_ADVERTISE,
+      PERMISSIONS.ANDROID.READ_MEDIA_AUDIO,
+      PERMISSIONS.ANDROID.READ_MEDIA_IMAGES,
+      PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE
+    ]).then((res) => {
       console.log(res)
     })
   }, [])
