@@ -12,6 +12,7 @@ import { requestMultiple, PERMISSIONS } from 'react-native-permissions'
 import { setupFileListener } from './src/screen/Main/FileListener'
 import { useNavigation } from '@react-navigation/native'
 import { RootStackNavigation, RootStackParamList } from './src/type'
+import ReceiveSharingIntent from 'react-native-receive-sharing-intent';
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
 
@@ -30,15 +31,40 @@ const App = (): React.JSX.Element => {
 
     const cleanupFileListener = setupFileListener({ navigation });
 
+    ReceiveSharingIntent.getReceivedFiles((files: any) => {
+      // files returns as JSON Array example
+      //[{ filePath: null, text: null, weblink: null, mimeType: null, contentUri: null, fileName: null, extension: null }]
+      console.log(files)
+      navigation.navigate('Home', {
+        file: files[0].contentUri,
+        fileType: files[0].mimeType
+      });
+    },
+      (error: any) => {
+        // console.log(error);
+      },
+      'ShareMedia' // share url protocol (must be unique to your app, suggest using your apple bundle id)
+    );
+
+
+
     // Clean up the file listener when the component unmounts
     return () => {
       cleanupFileListener();
+      ReceiveSharingIntent.clearReceivedFiles();
     };
 
   }, [])
 
   useEffect(() => {
-    requestMultiple([PERMISSIONS.ANDROID.BLUETOOTH_CONNECT, PERMISSIONS.ANDROID.BLUETOOTH_SCAN, PERMISSIONS.ANDROID.BLUETOOTH_ADVERTISE]).then((res) => {
+    requestMultiple([
+      PERMISSIONS.ANDROID.BLUETOOTH_CONNECT,
+      PERMISSIONS.ANDROID.BLUETOOTH_SCAN,
+      PERMISSIONS.ANDROID.BLUETOOTH_ADVERTISE,
+      PERMISSIONS.ANDROID.READ_MEDIA_AUDIO,
+      PERMISSIONS.ANDROID.READ_MEDIA_IMAGES,
+      PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE
+    ]).then((res) => {
       console.log(res)
     })
   }, [])

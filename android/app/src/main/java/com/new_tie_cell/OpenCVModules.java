@@ -52,27 +52,27 @@ public class OpenCVModules extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void processImage(String imageLocation, Promise promise){
-        Map<String, CoordinatesData> coordinatesMap = new HashMap<>();
         Context context = getReactApplicationContext();
         Map fileData = getFileData(context, Uri.parse(imageLocation));
-        WritableMap resultMap = new WritableNativeMap();
-
-        coordinatesMap.put("tanggal_status", new CoordinatesData(new int[]{100,152,296,83}, new String[] {"transaksi","berhasil","gagal"}));
-        coordinatesMap.put("admin_nominal", new CoordinatesData(new int[]{30, 876, 437, 48}, new String[] {}));
-        coordinatesMap.put("jenis_transaksi", new CoordinatesData(new int[]{32, 734, 437, 36}, new String[] {}));
-        coordinatesMap.put("tujuan", new CoordinatesData(new int[]{113, 616, 343, 96}, new String[] {}));
-        coordinatesMap.put("sumber", new CoordinatesData(new int[]{112, 473, 346, 96}, new String[] {"sumber","dana"}));
-        coordinatesMap.put("no_ref", new CoordinatesData(new int[]{30, 371, 437, 37}, new String[] {}));
-        coordinatesMap.put("total", new CoordinatesData(new int[]{121, 270, 240, 99}, new String[] {"total", "transaksi"}));
-        coordinatesMap.put("sumber_rek", new CoordinatesData(new int[]{107, 534, 181, 34}, new String[] {}));
-
+        Mat image;
         String dataPath = context.getFilesDir().getAbsolutePath() + "/tesseract";
+
         copyAssets(context, dataPath);
 
-        Uri cacheFileLoc = copyFileToLocalStorage(context, Uri.parse(imageLocation), (String) fileData.get("FIELD_NAME"));
-        Mat image = imagePreProcessing(cacheFileLoc.getPath());
+        WritableMap resultMap = new WritableNativeMap();
         TessBaseAPI tess = new TessBaseAPI();
+        Log.d("dataPath", dataPath);
         tess.init(dataPath, "eng+ind");
+        Uri cacheFileLoc = copyFileToLocalStorage(context, Uri.parse(imageLocation), (String) fileData.get("FIELD_NAME"));
+        image = imagePreProcessing(cacheFileLoc.getPath(), false);
+
+        String bankName = getBankInvoiceType(image, tess, dataPath);
+        if(bankName.equals("bri")){
+            image = imagePreProcessing(cacheFileLoc.getPath(), true);
+        }
+        Map<String, CoordinatesData> coordinatesMap = getCoordinate(bankName);
+        resultMap.putString("bankName", bankName);
+
         for (Map.Entry<String, CoordinatesData> entry : coordinatesMap.entrySet()){
             String keyValue = entry.getKey();
             int[] coordinates = entry.getValue().coordinates;
@@ -94,6 +94,43 @@ public class OpenCVModules extends ReactContextBaseJavaModule {
         Context context = getReactApplicationContext();
         Map fileData = getFileData(context, Uri.parse(file_loc));
         promise.resolve(fileData.get("FIELD_TYPE"));
+    }
+
+    public String getBankInvoiceType(Mat image, TessBaseAPI tess, String dataPath){
+        int[] cordLocBank = new int[]{22, 69, 169, 50};
+        Rect rect = new Rect(cordLocBank[0], cordLocBank[1], cordLocBank[2], cordLocBank[3]);
+        Mat roi = new Mat(image, rect);
+        String textResult = textProcessing(tess, roi, dataPath);
+        String textClean = textResult.replace("\n", "").replace("\r", "").replace("«", "");
+        Log.d("bankName", textClean);
+        if(textClean.toLowerCase().contains("permata")){
+            return "permata";
+        }
+        else{
+            return "bri";
+        }
+    }
+
+    private Map getCoordinate(String bank) {
+        Map<String, CoordinatesData> coordinatesMap = new HashMap<>();
+        if (bank == "permata") {
+            coordinatesMap.put("transfer_type", new CoordinatesData(new int[]{19, 215, 454, 100}, new String[]{"transfer"}));
+            coordinatesMap.put("amount", new CoordinatesData(new int[]{21, 328, 451, 103}, new String[]{"amount","jumlah"}));
+            coordinatesMap.put("tujuan", new CoordinatesData(new int[]{21, 449, 449, 146}, new String[]{"to","ke"}));
+            coordinatesMap.put("sumber", new CoordinatesData(new int[]{17, 610, 463, 147}, new String[]{"from", "dari"}));
+            coordinatesMap.put("jenis_transaksi", new CoordinatesData(new int[]{19, 776, 456, 76}, new String[]{"transfer","type"}));
+            coordinatesMap.put("ref_tgl", new CoordinatesData(new int[]{18, 960, 461, 162}, new String[]{"reference", "referensi"}));
+        } else {
+            coordinatesMap.put("tanggal_status", new CoordinatesData(new int[]{100, 152, 296, 83}, new String[]{"transaksi", "berhasil", "gagal"}));
+            coordinatesMap.put("admin_nominal", new CoordinatesData(new int[]{30, 876, 437, 48}, new String[]{}));
+            coordinatesMap.put("jenis_transaksi", new CoordinatesData(new int[]{32, 734, 437, 36}, new String[]{}));
+            coordinatesMap.put("tujuan", new CoordinatesData(new int[]{113, 616, 343, 96}, new String[]{}));
+            coordinatesMap.put("sumber", new CoordinatesData(new int[]{112, 473, 346, 96}, new String[]{"sumber", "dana"}));
+            coordinatesMap.put("no_ref", new CoordinatesData(new int[]{30, 371, 437, 37}, new String[]{}));
+            coordinatesMap.put("total", new CoordinatesData(new int[]{121, 270, 240, 99}, new String[]{"total", "transaksi"}));
+            coordinatesMap.put("sumber_rek", new CoordinatesData(new int[]{107, 534, 181, 34}, new String[]{}));
+        }
+        return coordinatesMap;
     }
 
     private Uri copyFileToLocalStorage(Context context, Uri uri, String fileName){
@@ -155,8 +192,11 @@ public class OpenCVModules extends ReactContextBaseJavaModule {
         }
     }
 
-    private Mat imagePreProcessing(String imageLocation){
+    private Mat imagePreProcessing(String imageLocation, Boolean isBri){
         Mat image = Imgcodecs.imread(imageLocation);
+        if(!isBri){
+            Imgproc.resize(image, image, new Size(540, 1275));
+        }
         Imgproc.resize(image, image, new Size(500, (image.height() * 500) / image.width()));
         Imgproc.cvtColor(image, image, Imgproc.COLOR_BGR2GRAY);
         return image;
@@ -234,6 +274,7 @@ public class OpenCVModules extends ReactContextBaseJavaModule {
 
         try {
             for (String assetName : am.list("")) {
+                Log.d("Asset", assetName);
                 if (assetName.endsWith(".traineddata")) {
                     InputStream in = am.open("" + assetName);
                     File outFile = new File(tessdataDir, assetName);

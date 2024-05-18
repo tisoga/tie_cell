@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Button, TextInput, View, Text, ScrollView } from "react-native"
+import { Button, TextInput, View, Text, ScrollView, Image } from "react-native"
 import { Extractor } from "react-native-pdf-extractor"
 import DocumentPicker, { isCancel, isInProgress, types } from 'react-native-document-picker'
 import styles from "./styles"
@@ -11,12 +11,19 @@ import Modal from 'react-native-modal'
 import TextInputModal from "./components/TextInputModal"
 import ButtonModal from "./components/ButtonModal"
 import { FileType } from "../../type"
+import moment from "moment"
+import 'moment/locale/id';
 import OpenCV from "../../utils/OpenCVModules"
+import { BLEPrinter, COMMANDS } from 'react-native-thermal-receipt-printer-image-qr'
+import { printerConnectedState } from "../../recoil/atom"
+import { useRecoilState } from "recoil"
+import { logoBri, logoHeader, logoPermata } from "../../assets/image/base64"
 
 type ChooseFileModeProps = {
     fileBg?: any
     fileType?: String
 }
+
 
 const ChooseFileMode = ({ fileBg, fileType }: ChooseFileModeProps) => {
     const { selectedTheme } = useTheme()
@@ -31,15 +38,12 @@ const ChooseFileMode = ({ fileBg, fileType }: ChooseFileModeProps) => {
     const [isDataEditable, setDataEditable] = useState(false)
     const [initialListOfData, setInitialData] = useState<string[][]>()
     const [fileTypeProcess, setFileTypeProcess] = useState('')
+    const [connectedPrinter, setPrinter] = useRecoilState(printerConnectedState)
 
     useEffect(() => {
         if (fileBg) {
             if (fileType?.toLowerCase().includes("image")) {
-                // setFile({
-                //     name: 'bukti-transfer-bg' as string,
-                //     uri: fileBg
-                // })
-                const processImage = async() => {
+                const processImage = async () => {
                     strukTransfer(await OpenCV.processImage(fileBg))
                 }
 
@@ -80,7 +84,6 @@ const ChooseFileMode = ({ fileBg, fileType }: ChooseFileModeProps) => {
         const regex = /\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2}/g;
         const tglTransaksi = dataStr.match(regex)?.toString() as string
         const indexProduk = arr.findIndex(item => item.toLowerCase().includes('produk :'))
-        console.log(arr)
         if (indexProduk !== -1) {
             produk = arr[indexProduk].split(':')[1].trim()
         }
@@ -270,40 +273,79 @@ const ChooseFileMode = ({ fileBg, fileType }: ChooseFileModeProps) => {
         setModalVisible(true)
     }
 
-    const strukTransfer = (dataSet: any) => {
+    const strukTransfer = async (dataSet: any) => {
+        console.log(dataSet)
         setFileTypeProcess('transfer')
-        const total = dataSet.total[0].replace('Rp','').replaceAll('.','')
-        const adminNominal = dataSet.admin_nominal[0].toLowerCase().includes('admin') ? 0 : parseInt(total) - parseInt(dataSet.admin_nominal[0].replace('Nominal', '').replace("Rp",'').replaceAll('.',''))
-        const jenisTransaksi = dataSet.jenis_transaksi[0].replace("Jenis Transaksi ",'').replace("Transfer ",'')
-        const noRef = dataSet.no_ref[0].replace("No. Ref ","")
-        const sumberRek = dataSet.sumber_rek[0].slice(0,4) + "********" + dataSet.sumber_rek[0].slice(-3)
-        const sumberBank = dataSet.sumber[1]
-        const namaPengirim = dataSet.sumber[0]
-        const tglTransaksi = dataSet.tanggal_status[0]
-        const tujuanRek = dataSet.tujuan[2].replaceAll(' ','')
-        const tujuanBank = dataSet.tujuan[1]
-        const namaPenerima = dataSet.tujuan[0]
+        if (dataSet.bankName === 'bri') {
+            const total = dataSet.total[0].replace('Rp', '').replaceAll('.', '')
+            const adminNominal = dataSet.admin_nominal[0].toLowerCase().includes('admin') ? 0 : parseInt(total) - parseInt(dataSet.admin_nominal[0].replace('Nominal', '').replace("Rp", '').replaceAll('.', ''))
+            const jenisTransaksi = dataSet.jenis_transaksi[0].replace("Jenis Transaksi ", '').replace("Transfer ", '')
+            const noRef = dataSet.no_ref[0].replace("No. Ref ", "")
+            const sumberRek = dataSet.sumber_rek[0].slice(0, 4) + "********" + dataSet.sumber_rek[0].slice(-3)
+            const sumberBank = dataSet.sumber[1]
+            const namaPengirim = dataSet.sumber[0]
+            const tglTransaksi = dataSet.tanggal_status[0].replace("WIB", "").replace("WIT", "").replace("WITA", "")
+            const tujuanRek = dataSet.tujuan[2].replaceAll(' ', '')
+            const tujuanBank = dataSet.tujuan[1]
+            const namaPenerima = dataSet.tujuan[0]
 
-        const dataVoucher = [
-            [tglTransaksi],
-            ['bri'],
-            ['NO REF', noRef],
-            ['TRANSFER TYPE', jenisTransaksi],
-            ['TF_SENDER'],
-            ['BANK ASAL', sumberBank],
-            ['NOMOR REKENING', sumberRek],
-            ['ATAS NAMA', namaPengirim],
-            ['TF_RECEIVER'],
-            ['BANK TUJUAN', tujuanBank],
-            ['NOMOR REKENING', tujuanRek],
-            ['ATAS NAMA', namaPenerima],
-            ['NOMINAL', adminNominal === 0 ? total : String(parseInt(total) - adminNominal)]
-        ]
+            const tglFormatted = moment(tglTransaksi, "DD MMMM YYYY, HH:mm:ss").format("DD/MM/YYYY, HH:mm:ss")
 
-        console.log(dataVoucher)
-        setListOfData(dataVoucher)
-        setInitialData(dataVoucher)
-        setModalVisible(true)
+            const dataVoucher = [
+                [tglFormatted],
+                [dataSet.bankName],
+                ['NO REF', noRef],
+                ['TRANSFER TYPE', jenisTransaksi],
+                ['TF_SENDER'],
+                ['BANK ASAL', sumberBank],
+                ['NOMOR REKENING', sumberRek],
+                ['ATAS NAMA', namaPengirim],
+                ['TF_RECEIVER'],
+                ['BANK TUJUAN', tujuanBank],
+                ['NOMOR REKENING', tujuanRek],
+                ['ATAS NAMA', namaPenerima],
+                ['NOMINAL', adminNominal === 0 ? total : String(parseInt(total) - adminNominal)],
+            ]
+
+            setListOfData(dataVoucher)
+            setInitialData(dataVoucher)
+            setModalVisible(true)
+        }
+        else if (dataSet.bankName === 'permata') {
+            setFileTypeProcess('transfer')
+            const jumlahTrf = dataSet.amount[0].replace('Rp', '').replace(',', '').replace('.', '').trim()
+            const penerima = dataSet.tujuan[0]
+            const bankPenerima = dataSet.tujuan[1]
+            const rekeningPenerima = dataSet.tujuan[2].replace('(IDR)', '').replaceAll("-", '').trim()
+            const pengirim = dataSet.sumber[0]
+            const bankPengirim = dataSet.sumber[1]
+            const rekeningPengirim = dataSet.sumber[2].replace('(IDR)', '').trim()
+            const transferType = dataSet.jenis_transaksi[0]
+            const ref = dataSet.ref_tgl[0]
+            const tanggal = `${dataSet.ref_tgl[1]} ${dataSet.ref_tgl[2]}`
+
+            const tglFormatted = moment(tanggal, "DD MMM YYYY, HH:mm:ss").format("DD/MM/YYYY, HH:mm:ss")
+
+            const dataVoucher = [
+                [tglFormatted],
+                [dataSet.bankName],
+                ['NO REF', ref],
+                ['TRANSFER TYPE', transferType],
+                ['TF_SENDER'],
+                ['BANK ASAL', bankPengirim],
+                ['NOMOR REKENING', rekeningPengirim],
+                ['ATAS NAMA', pengirim],
+                ['TF_RECEIVER'],
+                ['BANK TUJUAN', bankPenerima],
+                ['NOMOR REKENING', rekeningPenerima],
+                ['ATAS NAMA', penerima],
+                ['NOMINAL', jumlahTrf.slice(0, -2)],
+            ]
+
+            setListOfData(dataVoucher)
+            setInitialData(dataVoucher)
+            setModalVisible(true)
+        }
     }
 
     const onResult = (data: Transient | null) => {
@@ -342,7 +384,7 @@ const ChooseFileMode = ({ fileBg, fileType }: ChooseFileModeProps) => {
         setDataEditable(false)
     }
 
-    const onPressPrint = () => {
+    const onPressPrint = async () => {
         if (harga) {
             if (fileTypeProcess === 'voucher') {
                 const rpFormat = formatToIDR(Number(harga))
@@ -356,7 +398,7 @@ const ChooseFileMode = ({ fileBg, fileType }: ChooseFileModeProps) => {
                         payload: formatedPrinted,
                         mmFeedPaper: 3,
                         printerWidthMM: 58,
-                        printerNbrCharactersPerLine: 30
+                        printerNbrCharactersPerLine: 30,
                     })
                 }
                 catch (e) {
@@ -427,7 +469,7 @@ const ChooseFileMode = ({ fileBg, fileType }: ChooseFileModeProps) => {
                         payload: formatedPrinted,
                         mmFeedPaper: 3,
                         printerWidthMM: 58,
-                        printerNbrCharactersPerLine: 30
+                        printerNbrCharactersPerLine: 30,
                     })
                 }
                 catch (e) {
@@ -436,23 +478,47 @@ const ChooseFileMode = ({ fileBg, fileType }: ChooseFileModeProps) => {
                 onCloseModal()
             }
             else if (fileTypeProcess === 'transfer') {
+                let bankLogo;
                 const data = listOfData as string[][]
                 const date = data.splice(0, 1)[0][0]
                 const bankAsal = data.splice(0, 1)[0][0]
                 const rpFormatAdm = formatToIDR(Number(harga))
                 const total = formatToIDR(Number(harga) + Number(data[10][1]))
+
+                if (bankAsal === 'permata') {
+                    bankLogo = logoPermata
+                }
+                else {
+                    bankLogo = logoBri
+                }
+
                 data[10][1] = formatToIDR(Number(data[10][1]))
                 data.splice(11, 0, ['ADM', rpFormatAdm])
                 data.splice(12, 0, ['TOTAL', total])
-                const formatedPrinted = headerFormat(date, bankAsal as 'permata' | 'bri') + makeFormattedString(data) + footerFormat(bankAsal as 'permata' | 'bri')
+                const formatedHeader = "[L]\n" +
+                    `[C]${date}\n` +
+                    `[L]------------------------------\n` +
+                    `[L]\n[C]<font size='tall'><b>      Struk Bukti Transfer</b></font>\n[L]\n`
+                const formatedPrinted = formatedHeader + makeFormattedString(data) + footerFormat(bankAsal as "permata" | "bri")
                 console.log(formatedPrinted)
                 try {
-                    // ThermalPrinterModule.printBluetooth({
-                    //     payload: formatedPrinted,
-                    //     mmFeedPaper: 3,
-                    //     printerWidthMM: 58,
-                    //     printerNbrCharactersPerLine: 30
-                    // })
+                    await BLEPrinter.init()
+                    await BLEPrinter.connectPrinter(connectedPrinter.address)
+                    await BLEPrinter.printImageBase64(logoHeader, {
+                        tailingLine: true
+                    })
+                    await BLEPrinter.printImageBase64(bankLogo, {
+                        tailingLine: true
+                    })
+                    await COMMANDS.HARDWARE.HW_RESET
+                    await BLEPrinter.closeConn()
+                    await new Promise(resolve => setTimeout(resolve, 8000))
+                    await ThermalPrinterModule.printBluetooth({
+                        payload: formatedPrinted,
+                        mmFeedPaper: 3,
+                        printerWidthMM: 58,
+                        printerNbrCharactersPerLine: 30
+                    })
                 }
                 catch (e) {
                     console.log(e)
