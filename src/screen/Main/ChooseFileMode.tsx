@@ -90,6 +90,7 @@ const ChooseFileMode = ({ fileBg, fileType }: ChooseFileModeProps) => {
 
         if (dataStr.toLowerCase().includes('listrik prabayar')) {
             setFileTypeProcess('token')
+            let tokenIndex;
             const idPel = arr[arr.findIndex(item => item.toLowerCase().includes('idpel :'))].split(' ')[2]
             const namaPel = arr[arr.findIndex(item => item.toLowerCase().includes('nama :'))].split(' ')[2]
             const daya = arr[arr.findIndex(item => item.toLowerCase().includes('trf/'))].split(' ')[2]
@@ -97,7 +98,10 @@ const ChooseFileMode = ({ fileBg, fileType }: ChooseFileModeProps) => {
             const ppn = arr[arr.findIndex(item => item.toLowerCase().includes('ppn :'))].split(' ')[3].replace(',00', '')
             const materai = arr[arr.findIndex(item => item.toLowerCase().includes('mat :'))].split(' ')[3].replaceAll(',00', '')
             const jmlKwh = arr[arr.findIndex(item => item.toLowerCase().includes('kwh :'))].split(' ')[3]
-            const tokenIndex = arr.findIndex(item => item.toLowerCase().includes('token:'))
+            tokenIndex = arr.findIndex(item => item.toLowerCase().includes('token:'))
+            if(tokenIndex === -1){
+                tokenIndex = arr.findIndex(item => item.toLowerCase().includes('-- token --'))
+            }
             const token = `${arr[tokenIndex + 1]}-${arr[tokenIndex + 2]}`
 
             const dataSet = [
